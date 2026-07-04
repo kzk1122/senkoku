@@ -1,0 +1,93 @@
+# 線刻(せんこく)− 運筆道場
+
+Apple Pencil でイラストの基礎「運筆」を練習する Web アプリ(PWA)。
+お手本の線をなぞると **精度・網羅・滑らかさ** の3軸で採点され、70点以上で次の課題が解放されます。
+
+## 特徴
+
+- **段階解放式の課題**:横画 → 縦画 → 払い → 波線 → 円相 → 渦巻
+- **Apple Pencil 対応**:PointerEvent の `pressure` で筆圧を線の太さに反映。`getCoalescedEvents()` による高解像度サンプリング。ペン検出後はタッチ入力を無視するパームリジェクション付き
+- **朱印スタンプ採点**:書道の添削のように、秀・優・良・可・再の朱印で結果を表示
+- **補助線の段階調整**:濃 → 淡 → 無 の3段階。慣れたら補助線なしで挑戦
+- **進捗保存**:最高得点を `localStorage` に保存(将来的に IndexedDB へ移行予定)
+- **オフライン対応**:Service Worker によるキャッシュで PWA としてホーム画面に追加可能
+
+## 動かし方(ローカル)
+
+ビルド不要の静的サイトです。Service Worker を使うため、ローカルサーバー経由で開いてください。
+
+```bash
+# 例: Python
+python3 -m http.server 8000
+# → http://localhost:8000 を開く
+```
+
+iPad で試す場合は、同じ Wi-Fi 上の PC のローカル IP(例 `http://192.168.x.x:8000`)を Safari で開きます。
+
+## GitHub へのアップロード
+
+```bash
+cd senkoku
+git init
+git add .
+git commit -m "初回コミット: 運筆道場 Stage 1 プロトタイプ"
+git branch -M main
+git remote add origin https://github.com/<ユーザー名>/senkoku.git
+git push -u origin main
+```
+
+## Cloudflare Pages へのデプロイ
+
+1. Cloudflare ダッシュボード → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
+2. リポジトリ `senkoku` を選択
+3. ビルド設定:
+   - Framework preset: **None**
+   - Build command: (空欄)
+   - Build output directory: `/`
+4. Deploy を実行
+
+Iemono / HibiOri と同じ静的ホスティング構成なので、追加設定は不要です。
+
+## 採点アルゴリズム
+
+| 指標 | 重み | 内容 |
+|---|---|---|
+| 精度 | 50% | 描いた各点からお手本パスまでの平均距離(お手本サイズで正規化) |
+| 網羅 | 30% | お手本の各サンプル点の近傍(サイズの5.5%以内)を通過した割合 |
+| 滑らか | 20% | 等間隔リサンプリング後の角度変化(二階差分)から、お手本自身の曲率を差し引いた「余分なガタつき」 |
+
+さらに網羅率によるゲートがあり、線が途中で終わっている場合(網羅率90%未満)は合計点が段階的に減点され、40%以下では0点になります。「一筆で最後まで描き切る」ことを最優先で評価します。
+
+合格ライン(次の課題の解放)は **70点**。ランクは 90+ 秀 / 80+ 優 / 70+ 良 / 55+ 可 / それ未満 再。
+
+## ファイル構成
+
+```
+senkoku/
+├── index.html            # 画面
+├── css/style.css         # 和紙×墨×朱のデザイントークン
+├── js/app.js             # 課題定義・入力処理・採点・進捗
+├── icons/icon.svg        # PWA アイコン
+├── manifest.webmanifest  # PWA マニフェスト
+├── sw.js                 # Service Worker(オフラインキャッシュ)
+└── README.md
+```
+
+## ロードマップ
+
+- **Stage 1(本プロトタイプ)**:運筆道場 − 線の基礎
+  - [ ] 課題の追加(ハッチング、長い曲線、筆圧コントロール課題)
+  - [ ] スコア推移グラフと連続練習日数(IndexedDB 移行と併せて)
+- **Stage 2**:形体道場 − 図形分解による人体アタリ、ジェスチャードローイング(タイマー)
+- **Stage 3**:模写道場 − 隣表示 → 下敷き表示 → 記憶模写。完成後の差分オーバーレイ
+- **将来**:Claude API による描画講評機能
+
+## 技術メモ
+
+- 筆圧はマウスだと常に `0.5` 相当。Apple Pencil では 0〜1 の実値が取れ、線の太さ `2 + 7 × pressure` px に反映
+- キャンバスは `devicePixelRatio` でスケーリングし、Retina でも線がにじまない
+- `touch-action: none` でスクロールとの競合を防止
+
+## ライセンス
+
+MIT

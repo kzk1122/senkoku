@@ -1,0 +1,19 @@
+{
+  "name": "線刻 − 運筆道場",
+  "short_name": "線刻",
+  "description": "Apple Pencilで線を刻み、腕を磨く運筆練習アプリ",
+  "lang": "ja",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F6F1E4",
+  "theme_color": "#F6F1E4",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

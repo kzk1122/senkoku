@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>線刻 − 運筆道場</title>
+  <meta name="description" content="Apple Pencilで線を刻み、腕を磨く運筆練習アプリ" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#F6F1E4" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="header">
+      <div class="header-main">
+        <h1 class="title">線刻</h1>
+        <p class="subtitle">運筆道場 ─ 第一段</p>
+      </div>
+      <p class="tagline">線を刻み、腕を磨く</p>
+    </header>
+
+    <nav class="course-rail" id="courseRail" aria-label="課題一覧"></nav>
+
+    <main class="stage">
+      <div class="stage-head">
+        <div class="course-info">
+          <span class="course-glyph" id="courseGlyph">一</span>
+          <div>
+            <h2 class="course-name" id="courseName">横画</h2>
+            <p class="course-desc" id="courseDesc"></p>
+          </div>
+        </div>
+        <div class="stage-tools">
+          <button class="btn btn-ghost" id="guideBtn" type="button">補助線：濃</button>
+          <button class="btn btn-ghost" id="clearBtn" type="button">やり直す</button>
+        </div>
+      </div>
+
+      <div class="canvas-wrap" id="canvasWrap">
+        <canvas id="canvas"></canvas>
+
+        <div class="result" id="result" hidden>
+          <div class="stamp" id="stamp">
+            <span class="stamp-rank" id="stampRank">良</span>
+            <span class="stamp-score" id="stampScore">72</span>
+          </div>
+          <div class="result-detail">
+            <div class="meter"><span class="meter-label">精度</span><span class="meter-bar"><i id="barAcc"></i></span><span class="meter-val" id="valAcc"></span></div>
+            <div class="meter"><span class="meter-label">網羅</span><span class="meter-bar"><i id="barCov"></i></span><span class="meter-val" id="valCov"></span></div>
+            <div class="meter"><span class="meter-label">滑らか</span><span class="meter-bar"><i id="barSmo"></i></span><span class="meter-val" id="valSmo"></span></div>
+            <p class="result-note" id="resultNote"></p>
+            <div class="result-actions">
+              <button class="btn btn-solid" id="retryBtn" type="button">もう一度</button>
+              <button class="btn btn-shu" id="nextBtn" type="button" hidden>次の課題へ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="hint" id="hint">●印から矢印の方向へ、一筆で線をなぞってください。Apple Pencilの筆圧で線の太さが変わります。</p>
+    </main>
+
+    <footer class="footer">
+      <span id="penStatus">入力待ち</span>
+      <span>最高記録はこの端末に保存されます</span>
+    </footer>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+    }
+  </script>
+</body>
+</html>

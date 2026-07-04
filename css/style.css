@@ -1,0 +1,282 @@
+/* ============================================================
+   線刻 (Senkoku) − 運筆道場
+   Palette: 和紙 × 墨 × 朱(先生の添削印の色)
+   ============================================================ */
+:root {
+  --paper: #F6F1E4;
+  --paper-deep: #ECE4D0;
+  --ink: #221F1A;
+  --ink-soft: #55503F;
+  --nibi: #8B8577;          /* 鈍色: guides, muted text */
+  --shu: #C0392F;           /* 朱: grading / accent */
+  --shu-deep: #96271F;
+  --line: rgba(34, 31, 26, 0.14);
+  --radius: 14px;
+  --font-display: "Shippori Mincho", serif;
+  --font-body: "Zen Kaku Gothic New", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font-body);
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(192, 57, 47, 0.045), transparent 60%),
+    var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+.app {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 20px 18px calc(16px + env(safe-area-inset-bottom));
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- Header ---------- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 14px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2.6rem;
+  letter-spacing: 0.35em;
+  line-height: 1;
+}
+
+.subtitle {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  letter-spacing: 0.3em;
+  color: var(--ink-soft);
+}
+
+.tagline {
+  writing-mode: vertical-rl;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.78rem;
+  letter-spacing: 0.42em;
+  color: var(--nibi);
+  border-left: 1px solid var(--line);
+  padding-left: 12px;
+}
+
+/* ---------- Course rail ---------- */
+.course-rail {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: none;
+}
+.course-rail::-webkit-scrollbar { display: none; }
+
+.chip {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 76px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.45);
+  font-family: var(--font-body);
+  cursor: pointer;
+  color: var(--ink);
+  transition: border-color 0.15s, background 0.15s;
+}
+.chip:focus-visible { outline: 2px solid var(--shu); outline-offset: 2px; }
+
+.chip-glyph { font-family: var(--font-display); font-size: 1.45rem; font-weight: 700; line-height: 1; }
+.chip-name  { font-size: 0.68rem; letter-spacing: 0.12em; color: var(--ink-soft); }
+.chip-best  { font-size: 0.66rem; color: var(--nibi); font-variant-numeric: tabular-nums; }
+.chip-best.passed { color: var(--shu); font-weight: 700; }
+
+.chip.active { border-color: var(--ink); background: #fff; }
+.chip.locked { opacity: 0.45; cursor: not-allowed; }
+.chip.locked .chip-glyph::after { content: " 🔒"; font-size: 0.7rem; }
+
+/* ---------- Stage ---------- */
+.stage { display: flex; flex-direction: column; gap: 12px; }
+
+.stage-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.course-info { display: flex; align-items: center; gap: 14px; }
+
+.course-glyph {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1;
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  width: 56px; height: 56px;
+  display: grid; place-items: center;
+  background: #fff;
+}
+
+.course-name { font-family: var(--font-display); font-size: 1.3rem; font-weight: 700; letter-spacing: 0.14em; }
+.course-desc { font-size: 0.78rem; color: var(--ink-soft); margin-top: 2px; }
+
+.stage-tools { display: flex; gap: 8px; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn:focus-visible { outline: 2px solid var(--shu); outline-offset: 2px; }
+.btn-ghost { border-color: var(--line); color: var(--ink-soft); background: rgba(255,255,255,0.5); }
+.btn-solid { background: var(--ink); color: var(--paper); }
+.btn-shu   { background: var(--shu); border-color: var(--shu); color: #fff; }
+.btn-shu:active { background: var(--shu-deep); }
+
+/* ---------- Canvas ---------- */
+.canvas-wrap {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background:
+    repeating-linear-gradient(0deg, transparent 0 34px, rgba(34,31,26,0.025) 34px 35px),
+    #FDFBF4;
+  box-shadow: 0 2px 14px rgba(34, 31, 26, 0.06);
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+
+#canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.hint { font-size: 0.76rem; color: var(--nibi); text-align: center; letter-spacing: 0.04em; }
+
+/* ---------- Result overlay ---------- */
+.result {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 20px;
+  background: rgba(246, 241, 228, 0.9);
+  backdrop-filter: blur(3px);
+  flex-wrap: wrap;
+}
+
+/* 朱印: teacher's grading stamp */
+.stamp {
+  width: 128px; height: 128px;
+  border: 4px solid var(--shu);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--shu);
+  transform: rotate(-7deg);
+  background: radial-gradient(circle at 35% 30%, rgba(192,57,47,0.08), transparent 65%);
+  box-shadow: inset 0 0 0 2px rgba(192, 57, 47, 0.25);
+  animation: stamp-in 0.34s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.stamp-rank {
+  font-family: var(--font-display);
+  font-size: 3.4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.stamp-score {
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+}
+.stamp-score::after { content: " 点"; font-size: 0.7em; }
+
+@keyframes stamp-in {
+  from { transform: rotate(-7deg) scale(1.7); opacity: 0; }
+  to   { transform: rotate(-7deg) scale(1);   opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stamp { animation: none; }
+}
+
+.result-detail { display: flex; flex-direction: column; gap: 8px; min-width: 240px; max-width: 320px; }
+
+.meter { display: grid; grid-template-columns: 3.6em 1fr 2.6em; align-items: center; gap: 10px; }
+.meter-label { font-size: 0.78rem; letter-spacing: 0.14em; color: var(--ink-soft); }
+.meter-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--paper-deep);
+  overflow: hidden;
+}
+.meter-bar i {
+  display: block; height: 100%;
+  width: 0;
+  background: var(--ink);
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+.meter-val { font-size: 0.78rem; font-variant-numeric: tabular-nums; text-align: right; color: var(--ink-soft); }
+
+.result-note { font-size: 0.8rem; color: var(--ink-soft); margin-top: 4px; line-height: 1.6; }
+
+.result-actions { display: flex; gap: 10px; margin-top: 8px; }
+
+/* ---------- Footer ---------- */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--nibi);
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Narrow screens ---------- */
+@media (max-width: 560px) {
+  .title { font-size: 2rem; }
+  .tagline { display: none; }
+  .canvas-wrap { aspect-ratio: 1 / 1; }
+  .result { gap: 16px; }
+}
