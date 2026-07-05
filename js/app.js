@@ -260,6 +260,21 @@ function resample(points, step) {
   return out;
 }
 
+/* 3点移動平均 (両端は保持)。センサノイズ・微細な手ブレを除去してから
+   ガタつきを測るための前平滑化に使う */
+function smoothPts(pts) {
+  if (pts.length < 3) return pts;
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length - 1; i++) {
+    out.push({
+      x: (pts[i - 1].x + pts[i].x + pts[i + 1].x) / 3,
+      y: (pts[i - 1].y + pts[i].y + pts[i + 1].y) / 3,
+    });
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+
 /* 角度変化の二階差分平均 = 線のガタつき */
 function jitterOf(points, step) {
   const rs = resample(points, step);
@@ -315,9 +330,14 @@ function scoreStroke(stroke) {
   const cov = (covered / target.length) * 100;
 
   // 滑らかさ: お手本自身の曲率を差し引いた「余分なガタつき」
-  const step = size / 90;
-  const excess = Math.max(0, jitterOf(stroke, step) - jitterOf(target, step));
-  const smo = clamp01(1 - excess / 0.45) * 100;
+  // 実機の Apple Pencil はセンサノイズ+微細な手ブレが乗るため、
+  // 前平滑化(等間隔リサンプリング→3点移動平均×2)してマクロなうねりだけを測る。
+  // 前平滑化なし・step=size/90・許容0.45 だと丁寧に引いた線でも smo=0 に張り付く
+  // (2026-07 iPad 実機で確認 → シミュレーションで再調整済み)
+  const step = size / 45;
+  const smoothed = smoothPts(smoothPts(resample(stroke, step / 2)));
+  const excess = Math.max(0, jitterOf(smoothed, step) - jitterOf(target, step));
+  const smo = clamp01(1 - excess / 0.30) * 100;
 
   // 網羅率が低い(線が途中で終わっている)場合は合計点を大きく減点するゲート
   const base = acc * 0.5 + cov * 0.3 + smo * 0.2;
