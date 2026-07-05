@@ -117,5 +117,6 @@ prs = 最近傍お手本点の目標筆圧との平均誤差ベースだが、**
 
 - ローカル確認: `python3 -m http.server 8080`(8000 は他の node プロセスと衝突しがち)。iPad からは `http://<MacのIP>:8080`
 - Service Worker のキャッシュが効くので、動作確認時はハードリロード or CACHE 名の更新を忘れない
+- **Cloudflare Pages は `/xxx.html` → `/xxx` へ 308 リダイレクトする**。SW で `cache.addAll` すると redirected フラグ付きでキャッシュされ、Safari が「Response served by service worker has redirections」でページを開けなくなる。sw.js はクリーンな Response に作り直して両方の URL キーで保存する実装になっている(壊さないこと)
 - **`hidden` 属性は author CSS の `display` 指定に負ける**。オーバーレイ等の表示切替に `hidden` を使う場合は css/style.css の `[hidden] { display: none !important; }` が前提(過去にこれが原因で、非表示のはずの結果オーバーレイが canvas を覆いペン入力を奪うバグがあった)
 - コミットメッセージ・コード内コメントは日本語で OK
