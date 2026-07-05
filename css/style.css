@@ -182,11 +182,18 @@ body {
   height: 100%;
   touch-action: none;
   cursor: crosshair;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .hint { font-size: 0.76rem; color: var(--nibi); text-align: center; letter-spacing: 0.04em; }
 
 /* ---------- Result overlay ---------- */
+/* .result の display:flex が hidden 属性(UAの display:none)を上書きしてしまい、
+   非表示のはずのオーバーレイが canvas を覆ってペン入力を奪うバグの防止 */
+[hidden] { display: none !important; }
+
 .result {
   position: absolute;
   inset: 0;
