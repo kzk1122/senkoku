@@ -70,6 +70,7 @@ body {
   font-weight: 500;
   font-size: 0.78rem;
   letter-spacing: 0.42em;
+  line-height: 2.1; /* 縦書き2行組みの行間 (落款風)。1行にするとヘッダーが間延びする */
   color: var(--nibi);
   border-left: 1px solid var(--line);
   padding-left: 12px;
