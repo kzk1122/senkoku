@@ -1,18 +1,16 @@
 /* ============================================================
    採点ロジックの回帰テスト
    使い方: node tools/sim/verify.js
-   - js/app.js の実コード (dist〜scoreStrokes) を抽出して実行
+   - js/scoring.js (共通採点エンジン) を require して実行
    - 合成ストローク(固定シード乱数)で全課題タイプを採点し、
      期待値(total)との完全一致を検証する
    - 採点係数を意図的に変えたときは、出力を確認したうえで
      EXPECTED の値を更新すること
    ============================================================ */
 "use strict";
-const fs = require("fs");
 const path = require("path");
 
-const src = fs.readFileSync(path.join(__dirname, "../../js/app.js"), "utf8");
-const scoringCode = src.slice(src.indexOf("function dist("), src.indexOf("function rankOf"));
+const { scoreStrokes, dist } = require(path.join(__dirname, "../../js/scoring.js"));
 
 const W = 700, H = 525; // iPad 横向き相当のキャンバスサイズ
 
@@ -20,16 +18,6 @@ const W = 700, H = 525; // iPad 横向き相当のキャンバスサイズ
 let seed = 42;
 function rand() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
 function gauss() { return (rand() + rand() + rand() + rand() - 2) / 1; }
-
-/* ---------------- スコアラーの生成 ----------------
-   suite ごとに currentCourse / targetPoints のスタブを差し替える */
-function buildScorer(course, targetPointsImpl) {
-  const makeFns = new Function(
-    "targetPoints", "currentCourse",
-    scoringCode + "\nreturn { scoreStrokes, dist };"
-  );
-  return makeFns(targetPointsImpl, () => course);
-}
 
 function pathTargetPoints(pathFn) {
   return (n = 240) => {
@@ -58,7 +46,6 @@ function check(label, r, expected) {
 {
   const fn = t => ({ x: 0.68 - 0.38 * t - 0.10 * Math.sin(Math.PI * t), y: 0.15 + 0.70 * t });
   const targetPoints = pathTargetPoints(fn);
-  const { scoreStrokes, dist } = buildScorer({ pathFn: fn }, targetPoints);
 
   function makeStroke({ spacing, tremorAmp, tremorWL, sensorNoise, portion = 1 }) {
     const total = targetPoints(2000);
@@ -99,7 +86,7 @@ function check(label, r, expected) {
   console.log("=== Suite 1: 単筆課題 (払い) ===");
   for (const [name, params, expected] of CASES) {
     seed = 42 + name.length;
-    check(name, scoreStrokes([makeStroke(params)]), expected);
+    check(name, scoreStrokes([makeStroke(params)], targetPoints()), expected);
   }
 }
 
@@ -132,7 +119,6 @@ function check(label, r, expected) {
 
   for (const [cname, course] of Object.entries(COURSES)) {
     const targetPoints = pathTargetPoints(course.pathFn);
-    const { scoreStrokes, dist } = buildScorer(course, targetPoints);
 
     function makeStroke(prof) {
       const total = targetPoints(2000);
@@ -166,7 +152,7 @@ function check(label, r, expected) {
     console.log(`=== Suite 2: 筆圧課題 (${cname}) ===`);
     SCENARIOS.forEach(([sname, prof], si) => {
       seed = 42 + sname.length;
-      check(sname, scoreStrokes([makeStroke(prof)]), EXPECTED[cname][si]);
+      check(sname, scoreStrokes([makeStroke(prof)], targetPoints(), { pressureFn: course.pressureFn }), EXPECTED[cname][si]);
     });
   }
 }
@@ -177,8 +163,7 @@ function check(label, r, expected) {
 {
   const LINES = 6;
   const lineFn = (i, t) => ({ x: 0.32 + 0.104 * i - 0.16 * t, y: 0.2 + 0.6 * t });
-  const course = { hatch: { lines: LINES }, lineFn };
-
+  
   function targetLinePoints(li, n = 40) {
     const pts = [];
     for (let i = 0; i <= n; i++) {
@@ -193,7 +178,6 @@ function check(label, r, expected) {
     for (let li = 0; li < LINES; li++) pts.push(...targetLinePoints(li, per));
     return pts;
   }
-  const { scoreStrokes, dist } = buildScorer(course, targetPoints);
 
   function makeLine(li, { shiftX = 0, tremorAmp = 1.2, tremorWL = 40, noise = 0.3, portion = 1 }) {
     const lp = targetLinePoints(li, 2);
@@ -229,7 +213,78 @@ function check(label, r, expected) {
     seed = 42 + name.length;
     const strokes = [];
     for (let li = 0; li < LINES; li++) strokes.push(gen(li));
-    check(name, scoreStrokes(strokes), expected);
+    check(name, scoreStrokes(strokes, targetPoints(), { multiStroke: true }), expected);
+  }
+}
+
+/* ============================================================
+   Suite 4: アタリ課題 (形体道場・複数ストローク)
+   胴体アタリ: 背骨 + 胸郭 + 骨盤 の3部品 (js/keitai.js と同じ形状)
+   ============================================================ */
+{
+  const PARTS = [
+    t => ({ x: 0.5 - 0.05 * Math.sin(Math.PI * t), y: 0.14 + 0.72 * t }), // 背骨
+    t => ({ x: 0.47 + 0.16 * Math.sin(t * Math.PI * 2), y: 0.32 - 0.13 * Math.cos(t * Math.PI * 2) }), // 胸郭
+    t => ({ x: 0.48 + 0.13 * Math.sin(t * Math.PI * 2), y: 0.72 - 0.095 * Math.cos(t * Math.PI * 2) }), // 骨盤
+  ];
+  function partPoints(pi, n = 40) {
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const p = PARTS[pi](i / n);
+      pts.push({ x: p.x * W, y: p.y * H });
+    }
+    return pts;
+  }
+  function targetPoints(n = 240) {
+    const per = Math.max(2, Math.floor(n / PARTS.length));
+    const pts = [];
+    for (let pi = 0; pi < PARTS.length; pi++) pts.push(...partPoints(pi, per));
+    return pts;
+  }
+
+  /* 部品 pi をなぞる (scale ≠ 1 は重心基準で形を拡縮 = 大きさを間違えた場合) */
+  function makePart(pi, { tremorAmp = 1.2, tremorWL = 40, noise = 0.3, scale = 1 } = {}) {
+    const dense = partPoints(pi, 400);
+    let len = 0;
+    for (let i = 1; i < dense.length; i++) len += dist(dense[i - 1], dense[i]);
+    const nPts = Math.max(8, Math.round(len / 2));
+    let cx = 0, cy = 0;
+    for (const p of dense) { cx += p.x; cy += p.y; }
+    cx /= dense.length; cy /= dense.length;
+    const stroke = [];
+    const ph = rand() * Math.PI * 2;
+    for (let i = 0; i < nPts; i++) {
+      const t = i / (nPts - 1);
+      const p = PARTS[pi](t);
+      const p2 = PARTS[pi](Math.min(1, t + 0.002));
+      let nx = -(p2.y - p.y), ny = p2.x - p.x;
+      const nl = Math.hypot(nx, ny) || 1;
+      nx /= nl; ny /= nl;
+      const s = t * len;
+      const tremor = tremorAmp * Math.sin((s / tremorWL) * Math.PI * 2 + ph);
+      const bx = cx + (p.x * W - cx) * scale;
+      const by = cy + (p.y * H - cy) * scale;
+      stroke.push({
+        x: bx + nx * tremor + gauss() * noise,
+        y: by + ny * tremor + gauss() * noise,
+        p: 0.5,
+      });
+    }
+    return stroke;
+  }
+
+  const CASES = [
+    ["きれいな3筆",     () => [makePart(0), makePart(1), makePart(2)], 98],
+    ["ヨレた楕円",       () => [makePart(0), makePart(1, { tremorAmp: 5, tremorWL: 55 }), makePart(2, { tremorAmp: 5, tremorWL: 55 })], 91],
+    ["骨盤が小さすぎ",   () => [makePart(0), makePart(1), makePart(2, { scale: 0.55 })], 35],
+    ["骨盤を描き忘れ",   () => [makePart(0), makePart(1), makePart(1)], 33],
+  ];
+
+  console.log("=== Suite 4: アタリ課題 (胴体) ===");
+  const partTargets = PARTS.map((_, pi) => partPoints(pi));
+  for (const [name, gen, expected] of CASES) {
+    seed = 42 + name.length;
+    check(name, scoreStrokes(gen(), targetPoints(), { multiStroke: true, partTargets }), expected);
   }
 }
 

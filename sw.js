@@ -1,10 +1,13 @@
 /* 線刻 − minimal cache-first service worker */
-const CACHE = "senkoku-v8";
+const CACHE = "senkoku-v9";
 const ASSETS = [
   ".",
   "index.html",
+  "keitai.html",
   "css/style.css",
+  "js/scoring.js",
   "js/app.js",
+  "js/keitai.js",
   "manifest.webmanifest",
   "icons/icon.svg",
 ];

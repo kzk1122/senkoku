@@ -280,10 +280,101 @@ body {
   letter-spacing: 0.06em;
 }
 
+/* ---------- Stage 2: 形体道場 ---------- */
+.stage-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  color: var(--nibi);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 14px;
+  background: rgba(255, 255, 255, 0.5);
+}
+.stage-link:active { color: var(--ink); border-color: var(--ink-soft); }
+
+.tabs { display: flex; gap: 8px; }
+.tab {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.2em;
+  padding: 8px 22px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--ink-soft);
+}
+.tab.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+.gesture-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1.7fr;
+  gap: 12px;
+}
+.pose-pane, .draw-pane {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #FDFBF4;
+  box-shadow: 0 2px 14px rgba(34, 31, 26, 0.06);
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+}
+.pose-pane { background: repeating-linear-gradient(0deg, transparent 0 34px, rgba(34,31,26,0.025) 34px 35px), #F9F5EA; }
+.pose-pane canvas, .draw-pane canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.draw-pane canvas {
+  touch-action: none;
+  cursor: crosshair;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.timer {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--shu);
+}
+
+.gesture-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(246, 241, 228, 0.88);
+  backdrop-filter: blur(3px);
+}
+.gesture-msg {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  letter-spacing: 0.2em;
+  color: var(--ink);
+}
+
 /* ---------- Narrow screens ---------- */
 @media (max-width: 560px) {
   .title { font-size: 2rem; }
   .tagline { display: none; }
   .canvas-wrap { aspect-ratio: 1 / 1; }
   .result { gap: 16px; }
+  .gesture-wrap { grid-template-columns: 1fr; }
+  .pose-pane { aspect-ratio: 4 / 3; }
 }

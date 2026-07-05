@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>線刻 − 形体道場</title>
+  <meta name="description" content="図形分解のアタリとジェスチャードローイングで形をとらえる練習" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#F6F1E4" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="header">
+      <div class="header-main">
+        <h1 class="title">線刻</h1>
+        <p class="subtitle">形体道場 ─ 第二段</p>
+        <a class="stage-link" href="index.html">← 運筆道場</a>
+      </div>
+      <p class="tagline">形をとらえ、勢いを写す</p>
+    </header>
+
+    <nav class="tabs" aria-label="モード切替">
+      <button class="tab active" id="tabAtari" type="button">アタリ</button>
+      <button class="tab" id="tabGesture" type="button">ジェスチャー</button>
+    </nav>
+
+    <!-- ============ アタリ課題 ============ -->
+    <main class="stage" id="atariSec">
+      <nav class="course-rail" id="courseRail" aria-label="課題一覧"></nav>
+
+      <div class="stage-head">
+        <div class="course-info">
+          <span class="course-glyph" id="courseGlyph">頭</span>
+          <div>
+            <h2 class="course-name" id="courseName">頭部アタリ</h2>
+            <p class="course-desc" id="courseDesc"></p>
+          </div>
+        </div>
+        <div class="stage-tools">
+          <button class="btn btn-ghost" id="penBtn" type="button">筆&#xFF1A;中</button>
+          <button class="btn btn-ghost" id="guideBtn" type="button">補助線&#xFF1A;濃</button>
+          <button class="btn btn-ghost" id="clearBtn" type="button">やり直す</button>
+        </div>
+      </div>
+
+      <div class="canvas-wrap" id="atariWrap">
+        <canvas id="atariCanvas"></canvas>
+
+        <div class="result" id="result" hidden>
+          <div class="stamp" id="stamp">
+            <span class="stamp-rank" id="stampRank">良</span>
+            <span class="stamp-score" id="stampScore">72</span>
+          </div>
+          <div class="result-detail">
+            <div class="meter"><span class="meter-label">精度</span><span class="meter-bar"><i id="barAcc"></i></span><span class="meter-val" id="valAcc"></span></div>
+            <div class="meter"><span class="meter-label">網羅</span><span class="meter-bar"><i id="barCov"></i></span><span class="meter-val" id="valCov"></span></div>
+            <div class="meter"><span class="meter-label">滑らか</span><span class="meter-bar"><i id="barSmo"></i></span><span class="meter-val" id="valSmo"></span></div>
+            <p class="result-note" id="resultNote"></p>
+            <div class="result-actions">
+              <button class="btn btn-solid" id="retryBtn" type="button">もう一度</button>
+              <button class="btn btn-shu" id="nextBtn" type="button" hidden>次の課題へ</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="hint" id="atariHint"></p>
+    </main>
+
+    <!-- ============ ジェスチャードローイング ============ -->
+    <main class="stage" id="gestureSec" hidden>
+      <div class="stage-head">
+        <div class="course-info">
+          <span class="course-glyph">勢</span>
+          <div>
+            <h2 class="course-name">ジェスチャードローイング</h2>
+            <p class="course-desc">ポーズの勢い(動きの流れ)を制限時間内に素早くとらえる。うまく描くより「流れ」を優先。</p>
+          </div>
+        </div>
+        <div class="stage-tools">
+          <button class="btn btn-ghost" id="gPenBtn" type="button">筆&#xFF1A;中</button>
+          <button class="btn btn-ghost" id="timeBtn" type="button">時間&#xFF1A;60秒</button>
+          <button class="btn btn-ghost" id="gClearBtn" type="button">消す</button>
+          <button class="btn btn-shu" id="startBtn" type="button">開始</button>
+        </div>
+      </div>
+
+      <div class="gesture-wrap">
+        <div class="pose-pane">
+          <canvas id="poseCanvas"></canvas>
+          <span class="timer" id="timerDisp">--</span>
+        </div>
+        <div class="draw-pane">
+          <canvas id="gestureCanvas"></canvas>
+          <div class="gesture-overlay" id="gestureOverlay" hidden>
+            <p class="gesture-msg" id="gestureMsg">時間です</p>
+            <button class="btn btn-shu" id="nextPoseBtn" type="button">次のポーズ</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="hint">「開始」でお手本のポーズが表示され、タイマーが動き出します。左のアタリ(円・楕円・線)を参考に、右のキャンバスへ。</p>
+    </main>
+
+    <footer class="footer">
+      <span id="penStatus">入力待ち</span>
+      <span>最高記録はこの端末に保存されます</span>
+    </footer>
+  </div>
+
+  <script src="js/scoring.js"></script>
+  <script src="js/keitai.js"></script>
+</body>
+</html>
