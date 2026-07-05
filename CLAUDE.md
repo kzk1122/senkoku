@@ -23,6 +23,7 @@
 - UI は日本語。デザインは「和紙 × 墨 × 朱」(css/style.css の CSS 変数がデザイントークン)
   - `--paper: #F6F1E4` / `--ink: #221F1A` / `--shu: #C0392F`(朱=添削印の色)/ `--nibi: #8B8577`
   - フォント: Shippori Mincho(見出し)+ Zen Kaku Gothic New(本文)
+- ロゴ: 小文字「senkoku」+ 朱の始点● + 一筆の払い(運筆ガイドの意匠)。書体は **Zen Antique をアウトライン化した SVG**(`icons/logo.svg` = ヘッダー用ワードマーク、`icons/icon.svg` = PWA アイコン。フォント読み込み不要)。文字を変える場合は Zen Antique からパスを再生成すること
 - 採点結果は「朱印スタンプ」(秀・優・良・可・再)で表示するのがアプリの象徴的 UI
 - データ保存は現状 localStorage(`senkoku_progress_v1`)。**スコア履歴・練習日数を持つ段階で IndexedDB へ移行予定**
 

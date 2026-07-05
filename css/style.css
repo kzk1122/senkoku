@@ -57,6 +57,15 @@ body {
   line-height: 1;
 }
 
+/* ロゴ (senkoku ワードマーク: icons/logo.svg)。
+   Zen Antique をアウトライン化した SVG なのでフォント読み込み不要 */
+.title .logo {
+  display: block;
+  width: 220px;
+  height: auto;
+  margin: -14px 0 -18px -14px; /* SVG 内の余白ぶんを詰める */
+}
+
 .subtitle {
   margin-top: 8px;
   font-size: 0.8rem;
@@ -374,6 +383,7 @@ body {
 /* ---------- Narrow screens ---------- */
 @media (max-width: 560px) {
   .title { font-size: 2rem; }
+  .title .logo { width: 170px; margin: -11px 0 -14px -11px; }
   .tagline { display: none; }
   .canvas-wrap { aspect-ratio: 1 / 1; }
   .result { gap: 16px; }

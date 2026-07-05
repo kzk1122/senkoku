@@ -1,5 +1,5 @@
 /* 線刻 − minimal cache-first service worker */
-const CACHE = "senkoku-v12";
+const CACHE = "senkoku-v13";
 const ASSETS = [
   ".",
   "index.html",
@@ -10,6 +10,7 @@ const ASSETS = [
   "js/keitai.js",
   "manifest.webmanifest",
   "icons/icon.svg",
+  "icons/logo.svg",
 ];
 
 /* Cloudflare Pages は /index.html → / や /keitai.html → /keitai へ 308 リダイレクトする。
