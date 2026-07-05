@@ -165,11 +165,9 @@ function saveProgress() {
   catch { /* private mode 等では保存しない */ }
 }
 function bestOf(courseId) { return state.progress[courseId] ?? null; }
-function isUnlocked(index) {
-  if (index === 0) return true;
-  const prev = COURSES[index - 1];
-  return (bestOf(prev.id) ?? 0) >= PASS_SCORE;
-}
+/* 解放ゲートは撤廃 (2026-07): どの課題も最初から選べる。
+   PASS_SCORE は合格ライン(良)の表示にのみ使う */
+function isUnlocked() { return true; }
 
 /* ---------------- キャンバス ---------------- */
 function resizeCanvas() {
@@ -423,9 +421,7 @@ function showResult(r) {
   if (r.prs != null) els.valPrs.textContent = r.prs;
   els.note.textContent = noteFor(r);
 
-  const passed = r.total >= PASS_SCORE;
-  const hasNext = state.courseIndex < COURSES.length - 1;
-  els.nextBtn.hidden = !(passed && hasNext);
+  els.nextBtn.hidden = !(state.courseIndex < COURSES.length - 1);
 
   els.result.hidden = false;
   requestAnimationFrame(() => {

@@ -96,10 +96,8 @@ const els = {
 
 function currentCourse() { return ATARI_COURSES[state.courseIndex]; }
 function bestOf(id) { return state.progress[id] ?? null; }
-function isUnlocked(i) {
-  if (i === 0) return true;
-  return (bestOf(ATARI_COURSES[i - 1].id) ?? 0) >= PASS_SCORE;
-}
+/* 解放ゲートは撤廃 (2026-07): どの課題も最初から選べる */
+function isUnlocked() { return true; }
 
 /* 入力・筆描画の部品は js/surface.js (makeSurface / drawStrokesOf) を使用 */
 surfaceState.onPenDetect = () => {
@@ -238,9 +236,7 @@ function showResult(r) {
   els.valCov.textContent = r.cov;
   els.valSmo.textContent = r.smo;
   els.note.textContent = noteFor(r);
-  const passed = r.total >= PASS_SCORE;
-  const hasNext = state.courseIndex < ATARI_COURSES.length - 1;
-  els.nextBtn.hidden = !(passed && hasNext);
+  els.nextBtn.hidden = !(state.courseIndex < ATARI_COURSES.length - 1);
   els.result.hidden = false;
   requestAnimationFrame(() => {
     els.barAcc.style.width = r.acc + "%";

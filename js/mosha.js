@@ -91,14 +91,9 @@ function saveProgress() {
 }
 function scoreId(motifIdx, mode) { return `${MOTIFS[motifIdx].id}_${mode}`; }
 function bestOf(id) { return state.progress[id] ?? null; }
-function motifUnlocked(i) {
-  if (i === 0) return true;
-  return (bestOf(scoreId(i - 1, 0)) ?? 0) >= PASS_SCORE;
-}
-function modeUnlocked(motifIdx, mode) {
-  if (mode === 0) return true;
-  return (bestOf(scoreId(motifIdx, mode - 1)) ?? 0) >= PASS_SCORE;
-}
+/* 解放ゲートは撤廃 (2026-07): どの題材・モードも最初から選べる */
+function motifUnlocked() { return true; }
+function modeUnlocked() { return true; }
 
 /* ---------------- 状態 ---------------- */
 const state = {
@@ -327,12 +322,11 @@ function showResult(r) {
   els.valSmo.textContent = r.smo;
   els.note.textContent = noteFor(r);
 
-  const passed = r.total >= PASS_SCORE;
   els.nextBtn.hidden = true;
-  if (passed && state.mode < 2) {
+  if (state.mode < 2) {
     els.nextBtn.textContent = "次の段階へ";
     els.nextBtn.hidden = false;
-  } else if (passed && state.mode === 2 && state.motifIndex < MOTIFS.length - 1) {
+  } else if (state.motifIndex < MOTIFS.length - 1) {
     els.nextBtn.textContent = "次の題材へ";
     els.nextBtn.hidden = false;
   }
