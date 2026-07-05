@@ -69,6 +69,28 @@ const COURSES = [
       y: 0.12 + 0.76 * t,
     }),
   },
+  /* --- 筆圧コントロール課題 (pressureFn: t → 目標筆圧 0〜1) --- */
+  {
+    id: "kinatsu", glyph: "均", name: "均圧",
+    desc: "筆圧を一定に保ち、太さの揃った横画を。補助線の太さがお手本。",
+    pathFn: t => ({ x: 0.12 + 0.76 * t, y: 0.5 }),
+    pressureFn: () => 0.5,
+  },
+  {
+    id: "zenkyo", glyph: "強", name: "漸強",
+    desc: "軽く入り、終筆に向けてなだらかに筆圧を強める。",
+    pathFn: t => ({ x: 0.12 + 0.76 * t, y: 0.5 }),
+    pressureFn: t => 0.2 + 0.6 * t,
+  },
+  {
+    id: "nuki", glyph: "抜", name: "抜き",
+    desc: "強く入り、払いながら徐々に力を抜いて細く消える線に。",
+    pathFn: t => ({
+      x: 0.75 - 0.50 * t - 0.08 * Math.sin(Math.PI * t),
+      y: 0.15 + 0.70 * t,
+    }),
+    pressureFn: t => 0.8 - 0.65 * t,
+  },
 ];
 
 const PASS_SCORE = 70;
@@ -116,6 +138,7 @@ const els = {
   result: $("result"), stampRank: $("stampRank"), stampScore: $("stampScore"),
   barAcc: $("barAcc"), barCov: $("barCov"), barSmo: $("barSmo"),
   valAcc: $("valAcc"), valCov: $("valCov"), valSmo: $("valSmo"),
+  meterPrs: $("meterPrs"), barPrs: $("barPrs"), valPrs: $("valPrs"),
   note: $("resultNote"), retryBtn: $("retryBtn"), nextBtn: $("nextBtn"),
   penStatus: $("penStatus"), hint: $("hint"),
 };
@@ -170,15 +193,29 @@ function render() {
 function drawGuide() {
   const alpha = GUIDE_LEVELS[state.guideLevel].alpha;
   const pts = targetPoints();
+  const pf = currentCourse().pressureFn;
   if (alpha > 0) {
     ctx.save();
     ctx.strokeStyle = `rgba(139, 133, 119, ${alpha})`;
-    ctx.lineWidth = 3;
-    ctx.setLineDash([10, 8]);
     ctx.lineJoin = "round";
-    ctx.beginPath();
-    pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
-    ctx.stroke();
+    if (pf) {
+      // 筆圧課題: 目標筆圧を線の太さで可視化 (現在の筆設定と同じ式・実線)
+      const pen = PEN_LEVELS[state.penLevel];
+      ctx.lineCap = "round";
+      for (let i = 1; i < pts.length; i++) {
+        ctx.lineWidth = pen.base + pen.k * pf(i / (pts.length - 1));
+        ctx.beginPath();
+        ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
+        ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+      }
+    } else {
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      pts.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+      ctx.stroke();
+    }
     ctx.restore();
   }
   // 始点マーカーと方向矢印は常に表示
@@ -340,17 +377,25 @@ function scoreStroke(stroke) {
   const size = Math.max(Math.hypot(maxX - minX, maxY - minY), 1);
 
   // 精度: 描いた各点からお手本までの平均距離
-  let errSum = 0;
+  // 筆圧課題では、最近傍のお手本位置 t に対応する目標筆圧との誤差も同時に集計
+  const pf = currentCourse().pressureFn;
+  let errSum = 0, pErrSum = 0;
   for (const p of stroke) {
-    let best = Infinity;
-    for (const q of target) {
-      const d = dist(p, q);
-      if (d < best) best = d;
+    let best = Infinity, bestI = 0;
+    for (let i = 0; i < target.length; i++) {
+      const d = dist(p, target[i]);
+      if (d < best) { best = d; bestI = i; }
     }
     errSum += best;
+    if (pf) pErrSum += Math.abs((p.p || 0.5) - pf(bestI / (target.length - 1)));
   }
   const meanErr = errSum / stroke.length / size;
   const acc = clamp01(1 - (meanErr - 0.008) / 0.05) * 100;
+
+  // 筆圧: 目標筆圧カーブとの平均誤差 (筆圧課題のみ)
+  const prs = pf
+    ? clamp01(1 - (pErrSum / stroke.length - 0.02) / 0.20) * 100
+    : null;
 
   // 網羅: お手本の各点の近くを通過したか
   const covTol = size * 0.055;
@@ -373,12 +418,19 @@ function scoreStroke(stroke) {
   const smo = clamp01(1 - excess / 0.30) * 100;
 
   // 網羅率が低い(線が途中で終わっている)場合は合計点を大きく減点するゲート
-  const base = acc * 0.5 + cov * 0.3 + smo * 0.2;
-  const gate = clamp01((cov - 40) / 50);
+  // 筆圧課題は筆圧軸を加えた4軸で配分
+  const base = pf
+    ? acc * 0.35 + cov * 0.25 + smo * 0.15 + prs * 0.25
+    : acc * 0.5 + cov * 0.3 + smo * 0.2;
+  // 筆圧課題では筆圧が悪すぎる場合もゲートで減点 (prs 60+ なら減点なし)
+  const gate = clamp01((cov - 40) / 50) * (pf ? clamp01((prs - 15) / 45) : 1);
   const total = Math.round(base * gate);
   const avgPressure = stroke.reduce((s, p) => s + (p.p || 0), 0) / stroke.length;
 
-  return { total, acc: Math.round(acc), cov: Math.round(cov), smo: Math.round(smo), avgPressure };
+  return {
+    total, acc: Math.round(acc), cov: Math.round(cov), smo: Math.round(smo),
+    prs: prs == null ? null : Math.round(prs), avgPressure,
+  };
 }
 
 function rankOf(score) {
@@ -390,11 +442,14 @@ function rankOf(score) {
 }
 
 function noteFor(r) {
-  const weakest = Math.min(r.acc, r.cov, r.smo);
+  const axes = [r.acc, r.cov, r.smo];
+  if (r.prs != null) axes.push(r.prs);
+  const weakest = Math.min(...axes);
   if (r.total >= PASS_SCORE) {
     if (r.total >= 90) return "見事な一筆です。次の課題も同じ集中で。";
     return "合格です。補助線を淡くして再挑戦すると更に力がつきます。";
   }
+  if (r.prs != null && weakest === r.prs) return "筆圧がお手本とずれています。補助線の太さに線を重ねる意識で。";
   if (weakest === r.cov) return "線が途中で止まっています。始筆から終筆まで一息に。";
   if (weakest === r.acc) return "お手本から離れています。速さより正確さを優先して。";
   return "線がガタついています。指先ではなく腕全体で動かす意識を。";
@@ -414,6 +469,8 @@ function showResult(r) {
   els.valAcc.textContent = r.acc;
   els.valCov.textContent = r.cov;
   els.valSmo.textContent = r.smo;
+  els.meterPrs.hidden = r.prs == null;
+  if (r.prs != null) els.valPrs.textContent = r.prs;
   els.note.textContent = noteFor(r);
 
   const passed = r.total >= PASS_SCORE;
@@ -425,6 +482,7 @@ function showResult(r) {
     els.barAcc.style.width = r.acc + "%";
     els.barCov.style.width = r.cov + "%";
     els.barSmo.style.width = r.smo + "%";
+    if (r.prs != null) els.barPrs.style.width = r.prs + "%";
   });
 
   renderRail(); // 解放状態と最高点を更新
@@ -432,7 +490,7 @@ function showResult(r) {
 
 function hideResult() {
   els.result.hidden = true;
-  [els.barAcc, els.barCov, els.barSmo].forEach(b => (b.style.width = "0"));
+  [els.barAcc, els.barCov, els.barSmo, els.barPrs].forEach(b => (b.style.width = "0"));
 }
 
 /* ---------------- 課題レール ---------------- */
