@@ -205,16 +205,70 @@ function check(label, r, expected) {
     ["間隔ややガタガタ", li => makeLine(li, { shiftX: (rand() - 0.5) * 30 }), 88],
     ["間隔大きく乱れ",   li => makeLine(li, { shiftX: (rand() - 0.5) * 70 }), 74],
     ["ヨレヨレの線",     li => makeLine(li, { tremorAmp: 5, tremorWL: 60 }), 83],
-    ["2本が同じ場所",    li => makeLine(li === 5 ? 4 : li, {}), 60],
+    ["2本が同じ場所",    li => makeLine(li === 5 ? 4 : li, {}), 0],
     ["短い線ばかり",     li => makeLine(li, { portion: 0.55 }), 8],
   ];
 
   console.log("=== Suite 3: ハッチング ===");
+  const hatchPartTargets = [...Array(LINES)].map((_, li) => targetLinePoints(li));
   for (const [name, gen, expected] of CASES) {
     seed = 42 + name.length;
     const strokes = [];
     for (let li = 0; li < LINES; li++) strokes.push(gen(li));
-    check(name, scoreStrokes(strokes, targetPoints(), { multiStroke: true }), expected);
+    check(name, scoreStrokes(strokes, targetPoints(), { multiStroke: true, partTargets: hatchPartTargets }), expected);
+  }
+}
+
+/* ============================================================
+   Suite 3.5: まる3つ (同心円・曲線の複数ストローク)
+   partTargets により円の固有曲率が滑らかさで減点されないこと
+   ============================================================ */
+{
+  const RADII = [0.32, 0.21, 0.10];
+  const circleFn = (i, t) => ({
+    x: (0.5 + RADII[i] * Math.sin(t * Math.PI * 2)) * W,
+    y: (0.5 - RADII[i] * Math.cos(t * Math.PI * 2)) * H,
+  });
+  function circlePoints(i, n = 40) {
+    const pts = [];
+    for (let k = 0; k <= n; k++) pts.push(circleFn(i, k / n));
+    return pts;
+  }
+  function targetPoints(n = 240) {
+    const per = Math.max(2, Math.floor(n / 3));
+    const pts = [];
+    for (let i = 0; i < 3; i++) pts.push(...circlePoints(i, per));
+    return pts;
+  }
+  function makeCircle(i, { tremorAmp = 1.2, tremorWL = 40, noise = 0.3 } = {}) {
+    const dense = circlePoints(i, 300);
+    let len = 0;
+    for (let k = 1; k < dense.length; k++) len += dist(dense[k - 1], dense[k]);
+    const nPts = Math.max(8, Math.round(len / 2));
+    const ph = rand() * Math.PI * 2;
+    const stroke = [];
+    for (let k = 0; k < nPts; k++) {
+      const t = k / (nPts - 1);
+      const p = circleFn(i, t);
+      const a = t * Math.PI * 2;
+      const tremor = tremorAmp * Math.sin(((t * len) / tremorWL) * Math.PI * 2 + ph);
+      stroke.push({
+        x: p.x + Math.sin(a) * tremor + gauss() * noise,
+        y: p.y - Math.cos(a) * tremor + gauss() * noise,
+        p: 0.5,
+      });
+    }
+    return stroke;
+  }
+  const CASES = [
+    ["きれいな3円",  () => [makeCircle(0), makeCircle(1), makeCircle(2)], 100],
+    ["内円を忘れた", () => [makeCircle(0), makeCircle(1), makeCircle(1)], 0],
+  ];
+  console.log("=== Suite 3.5: まる3つ (同心円) ===");
+  const partTargets = [0, 1, 2].map(i => circlePoints(i));
+  for (const [name, gen, expected] of CASES) {
+    seed = 42 + name.length;
+    check(name, scoreStrokes(gen(), targetPoints(), { multiStroke: true, partTargets }), expected);
   }
 }
 

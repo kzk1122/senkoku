@@ -9,10 +9,16 @@
 /* ---------------- 課題定義 ----------------
    pathFn(t): t∈[0,1] → 正規化座標 {x, y} (0〜1) */
 const COURSES = [
+  /* --- 直線 --- */
   {
     id: "yokoga", glyph: "一", name: "よこ線",
     desc: "水平な線を、最初から最後まで同じ速さで。",
     pathFn: t => ({ x: 0.12 + 0.76 * t, y: 0.5 }),
+  },
+  {
+    id: "yoko_r", glyph: "←", name: "よこ線←",
+    desc: "こんどは右から左へ。逆方向も同じクオリティで。",
+    pathFn: t => ({ x: 0.88 - 0.76 * t, y: 0.5 }),
   },
   {
     id: "tatega", glyph: "｜", name: "たて線",
@@ -20,10 +26,34 @@ const COURSES = [
     pathFn: t => ({ x: 0.5, y: 0.12 + 0.76 * t }),
   },
   {
+    id: "tate_u", glyph: "↑", name: "たて線↑",
+    desc: "下から上へ。押す線と引く線、両方できると強い。",
+    pathFn: t => ({ x: 0.5, y: 0.88 - 0.76 * t }),
+  },
+  {
+    id: "naname_dr", glyph: "＼", name: "ななめ線↘",
+    desc: "左上から右下へ、まっすぐ。角度をキープ!",
+    pathFn: t => ({ x: 0.15 + 0.70 * t, y: 0.15 + 0.70 * t }),
+  },
+  {
+    id: "naname_ur", glyph: "／", name: "ななめ線↗",
+    desc: "左下から右上へ、まっすぐ。いちばん使う角度かも。",
+    pathFn: t => ({ x: 0.15 + 0.70 * t, y: 0.85 - 0.70 * t }),
+  },
+  /* --- カーブ --- */
+  {
     id: "harai", glyph: "丿", name: "はらい",
     desc: "右上から左下へ、ゆるやかにカーブ。",
     pathFn: t => ({
       x: 0.68 - 0.38 * t - 0.10 * Math.sin(Math.PI * t),
+      y: 0.15 + 0.70 * t,
+    }),
+  },
+  {
+    id: "gyaku_harai", glyph: "乀", name: "ぎゃくはらい",
+    desc: "左上から右下へ。さっきの鏡うつし。",
+    pathFn: t => ({
+      x: 0.32 + 0.38 * t + 0.10 * Math.sin(Math.PI * t),
       y: 0.15 + 0.70 * t,
     }),
   },
@@ -36,12 +66,49 @@ const COURSES = [
     }),
   },
   {
+    id: "nami_v", glyph: "≀", name: "たてなみ",
+    desc: "たて方向の波。よこと同じリズムで描けるかな?",
+    pathFn: t => ({
+      x: 0.5 + 0.13 * Math.sin(t * Math.PI * 4),
+      y: 0.12 + 0.76 * t,
+    }),
+  },
+  {
+    id: "oonami", glyph: "∿", name: "おおなみ",
+    desc: "大きくゆったりした波を2つ。腕ぜんたいで。",
+    pathFn: t => ({
+      x: 0.12 + 0.76 * t,
+      y: 0.5 + 0.22 * Math.sin(t * Math.PI * 4),
+    }),
+  },
+  /* --- まる・うずまき --- */
+  {
     id: "enso", glyph: "○", name: "まる",
     desc: "上から時計回りに一筆で円を。最初と最後をつなげて。",
     pathFn: t => ({
       x: 0.5 + 0.3 * Math.sin(t * Math.PI * 2),
       y: 0.5 - 0.3 * Math.cos(t * Math.PI * 2),
     }),
+  },
+  {
+    id: "enso_ccw", glyph: "↺", name: "まる・ぎゃく",
+    desc: "こんどは反時計回り。にがてな向きこそ練習!",
+    pathFn: t => ({
+      x: 0.5 - 0.3 * Math.sin(t * Math.PI * 2),
+      y: 0.5 - 0.3 * Math.cos(t * Math.PI * 2),
+    }),
+  },
+  {
+    id: "maru3", glyph: "◎", name: "まる3つ",
+    desc: "大→中→小の同心円を3筆で。中心をそろえて。",
+    hatch: { lines: 3 },
+    lineFn: (i, t) => {
+      const r = [0.32, 0.21, 0.10][i];
+      return {
+        x: 0.5 + r * Math.sin(t * Math.PI * 2),
+        y: 0.5 - r * Math.cos(t * Math.PI * 2),
+      };
+    },
   },
   {
     id: "uzu", glyph: "渦", name: "うずまき",
@@ -54,6 +121,17 @@ const COURSES = [
     },
   },
   {
+    id: "uzu_out", glyph: "＠", name: "うずまき・外へ",
+    desc: "中心からスタートして外へぐるぐる。逆向きの練習。",
+    pathFn: t => {
+      const turns = 2.5;
+      const a = t * Math.PI * 2 * turns;
+      const r = 0.34 * (0.18 + 0.82 * t);
+      return { x: 0.5 + r * Math.cos(a), y: 0.5 + r * Math.sin(a) };
+    },
+  },
+  /* --- 大きなカーブ --- */
+  {
     id: "taiko", glyph: "⌒", name: "アーチ",
     desc: "画面いっぱいの大きなアーチを一気に。肩から動かそう。",
     pathFn: t => ({
@@ -62,11 +140,35 @@ const COURSES = [
     }),
   },
   {
+    id: "u_ji", glyph: "∪", name: "Uの字",
+    desc: "アーチの逆。谷型のカーブを一気に。",
+    pathFn: t => ({
+      x: 0.5 - 0.38 * Math.cos(Math.PI * t),
+      y: 0.28 + 0.44 * Math.sin(Math.PI * t),
+    }),
+  },
+  {
     id: "sji", glyph: "乙", name: "S字",
     desc: "上から下へ、曲がりの向きをなめらかに切り替える。",
     pathFn: t => ({
       x: 0.5 - 0.24 * Math.sin(t * Math.PI * 2),
       y: 0.12 + 0.76 * t,
+    }),
+  },
+  {
+    id: "s_yoko", glyph: "∽", name: "S字よこ",
+    desc: "ねころんだS字。大きくゆったり切り替えて。",
+    pathFn: t => ({
+      x: 0.12 + 0.76 * t,
+      y: 0.5 + 0.22 * Math.sin(t * Math.PI * 2),
+    }),
+  },
+  {
+    id: "mugen", glyph: "∞", name: "むげん",
+    desc: "交差する8の字ループ。ペン先のコントロール総しあげ!",
+    pathFn: t => ({
+      x: 0.5 + 0.34 * Math.sin(t * Math.PI * 2),
+      y: 0.5 + 0.17 * Math.sin(t * Math.PI * 4),
     }),
   },
   /* --- 筆圧コントロール課題 (pressureFn: t → 目標筆圧 0〜1) --- */
@@ -81,6 +183,12 @@ const COURSES = [
     desc: "軽くスタートして、終わりに向けてだんだん筆圧を強く。",
     pathFn: t => ({ x: 0.12 + 0.76 * t, y: 0.5 }),
     pressureFn: t => 0.2 + 0.6 * t,
+  },
+  {
+    id: "zenjaku", glyph: "弱", name: "だんだん弱く",
+    desc: "強くスタートして、だんだん力を抜いていく。",
+    pathFn: t => ({ x: 0.12 + 0.76 * t, y: 0.5 }),
+    pressureFn: t => 0.8 - 0.6 * t,
   },
   {
     id: "nuki", glyph: "抜", name: "スッと抜く",
@@ -100,6 +208,24 @@ const COURSES = [
       x: 0.32 + 0.104 * i - 0.16 * t,
       y: 0.2 + 0.6 * t,
     }),
+  },
+  {
+    id: "tate_hatch", glyph: "川", name: "たてハッチ",
+    desc: "たての平行線を6本、等間かくに。",
+    hatch: { lines: 6 },
+    lineFn: (i, t) => ({
+      x: 0.24 + 0.104 * i,
+      y: 0.2 + 0.6 * t,
+    }),
+  },
+  {
+    id: "cross_hatch", glyph: "井", name: "クロスハッチ",
+    desc: "ななめ線6本 + 逆ななめ6本の12筆。網目をきれいに!",
+    hatch: { lines: 12 },
+    lineFn: (i, t) =>
+      i < 6
+        ? { x: 0.32 + 0.104 * i - 0.16 * t, y: 0.2 + 0.6 * t }
+        : { x: 0.168 + 0.104 * (i - 6) + 0.16 * t, y: 0.2 + 0.6 * t },
   },
 ];
 
@@ -374,10 +500,16 @@ canvas.addEventListener("pointercancel", endStroke);
    ここでは課題定義からお手本とオプションを組み立てて渡すだけ */
 function scoreCurrent(strokes) {
   const course = currentCourse();
-  return scoreStrokes(strokes, targetPoints(), {
+  const opts = {
     pressureFn: course.pressureFn,
     multiStroke: !!course.hatch,
-  });
+  };
+  // 複数ストローク課題は部品(ライン)ごとのお手本も渡す
+  // → 曲線部品(同心円など)の固有曲率を減点せず、描き忘れは部品最低covゲートで検出
+  if (course.hatch) {
+    opts.partTargets = [...Array(course.hatch.lines)].map((_, li) => targetLinePoints(li));
+  }
+  return scoreStrokes(strokes, targetPoints(), opts);
 }
 
 function rankOf(score) {
