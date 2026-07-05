@@ -108,7 +108,7 @@ function drawStrokesOf(sf) {
   const ctx = sf.ctx;
   const pen = PEN_LEVELS[surfaceState.penLevel];
   ctx.save();
-  ctx.strokeStyle = "#221F1A";
+  ctx.strokeStyle = "#33323E";
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   for (const points of [...sf.strokes, sf.stroke]) {

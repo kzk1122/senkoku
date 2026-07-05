@@ -10,42 +10,42 @@
    pathFn(t): t∈[0,1] → 正規化座標 {x, y} (0〜1) */
 const COURSES = [
   {
-    id: "yokoga", glyph: "一", name: "横画",
-    desc: "水平な線を、始筆から終筆まで一定の速さで。",
+    id: "yokoga", glyph: "一", name: "よこ線",
+    desc: "水平な線を、最初から最後まで同じ速さで。",
     pathFn: t => ({ x: 0.12 + 0.76 * t, y: 0.5 }),
   },
   {
-    id: "tatega", glyph: "｜", name: "縦画",
-    desc: "垂直な線をまっすぐ下ろす。肘から動かす意識で。",
+    id: "tatega", glyph: "｜", name: "たて線",
+    desc: "まっすぐ下へ。ひじから動かす意識で。",
     pathFn: t => ({ x: 0.5, y: 0.12 + 0.76 * t }),
   },
   {
-    id: "harai", glyph: "丿", name: "払い",
-    desc: "右上から左下へ、ゆるやかに反る曲線。",
+    id: "harai", glyph: "丿", name: "はらい",
+    desc: "右上から左下へ、ゆるやかにカーブ。",
     pathFn: t => ({
       x: 0.68 - 0.38 * t - 0.10 * Math.sin(Math.PI * t),
       y: 0.15 + 0.70 * t,
     }),
   },
   {
-    id: "nami", glyph: "〜", name: "波線",
-    desc: "一定の振幅とリズムで波を描く。手首の柔らかさの練習。",
+    id: "nami", glyph: "〜", name: "なみ線",
+    desc: "同じ大きさ・同じリズムで波をえがく。手首やわらかく!",
     pathFn: t => ({
       x: 0.12 + 0.76 * t,
       y: 0.5 + 0.13 * Math.sin(t * Math.PI * 4),
     }),
   },
   {
-    id: "enso", glyph: "○", name: "円相",
-    desc: "上から時計回りに一筆で円を。始点と終点を繋げる。",
+    id: "enso", glyph: "○", name: "まる",
+    desc: "上から時計回りに一筆で円を。最初と最後をつなげて。",
     pathFn: t => ({
       x: 0.5 + 0.3 * Math.sin(t * Math.PI * 2),
       y: 0.5 - 0.3 * Math.cos(t * Math.PI * 2),
     }),
   },
   {
-    id: "uzu", glyph: "渦", name: "渦巻",
-    desc: "外から内へ、間隔を保ちながら渦を巻く。総仕上げ。",
+    id: "uzu", glyph: "渦", name: "うずまき",
+    desc: "外から内へ、間かくを保ちながらぐるぐる。",
     pathFn: t => {
       const turns = 2.5;
       const a = t * Math.PI * 2 * turns;
@@ -54,8 +54,8 @@ const COURSES = [
     },
   },
   {
-    id: "taiko", glyph: "⌒", name: "大弧",
-    desc: "画面いっぱいの大きな弧を一息で。指先でなく肩から動かす。",
+    id: "taiko", glyph: "⌒", name: "アーチ",
+    desc: "画面いっぱいの大きなアーチを一気に。肩から動かそう。",
     pathFn: t => ({
       x: 0.5 - 0.38 * Math.cos(Math.PI * t),
       y: 0.72 - 0.44 * Math.sin(Math.PI * t),
@@ -71,20 +71,20 @@ const COURSES = [
   },
   /* --- 筆圧コントロール課題 (pressureFn: t → 目標筆圧 0〜1) --- */
   {
-    id: "kinatsu", glyph: "均", name: "均圧",
-    desc: "筆圧を一定に保ち、太さの揃った横画を。補助線の太さがお手本。",
+    id: "kinatsu", glyph: "均", name: "筆圧キープ",
+    desc: "筆圧を一定にキープして、太さのそろった線を。補助線の太さがお手本。",
     pathFn: t => ({ x: 0.12 + 0.76 * t, y: 0.5 }),
     pressureFn: () => 0.5,
   },
   {
-    id: "zenkyo", glyph: "強", name: "漸強",
-    desc: "軽く入り、終筆に向けてなだらかに筆圧を強める。",
+    id: "zenkyo", glyph: "強", name: "だんだん強く",
+    desc: "軽くスタートして、終わりに向けてだんだん筆圧を強く。",
     pathFn: t => ({ x: 0.12 + 0.76 * t, y: 0.5 }),
     pressureFn: t => 0.2 + 0.6 * t,
   },
   {
-    id: "nuki", glyph: "抜", name: "抜き",
-    desc: "強く入り、払いながら徐々に力を抜いて細く消える線に。",
+    id: "nuki", glyph: "抜", name: "スッと抜く",
+    desc: "強くスタートして、はらいながらスッと力を抜いて細く。",
     pathFn: t => ({
       x: 0.75 - 0.50 * t - 0.08 * Math.sin(Math.PI * t),
       y: 0.15 + 0.70 * t,
@@ -94,7 +94,7 @@ const COURSES = [
   /* --- 複数ストローク課題 (hatch.lines 本描き終えると自動採点) --- */
   {
     id: "hatch", glyph: "彡", name: "ハッチング",
-    desc: "斜めの平行線を6本、等間隔に。角度と速さを揃えるのがコツ。",
+    desc: "ななめの平行線を6本、等間かくに。角度と速さをそろえるのがコツ。",
     hatch: { lines: 6 },
     lineFn: (i, t) => ({
       x: 0.32 + 0.104 * i - 0.16 * t,
@@ -227,7 +227,7 @@ function drawGuide() {
   const pf = course.pressureFn;
   if (alpha > 0) {
     ctx.save();
-    ctx.strokeStyle = `rgba(139, 133, 119, ${alpha})`;
+    ctx.strokeStyle = `rgba(156, 153, 168, ${alpha})`;
     ctx.lineJoin = "round";
     if (course.hatch) {
       // ハッチング: 各ラインを破線で
@@ -263,7 +263,7 @@ function drawGuide() {
   const start = pts[0];
   const ahead = pts[6];
   ctx.save();
-  ctx.fillStyle = "rgba(192, 57, 47, 0.85)";
+  ctx.fillStyle = "rgba(255, 107, 87, 0.95)";
   ctx.beginPath();
   ctx.arc(start.x, start.y, 6, 0, Math.PI * 2);
   ctx.fill();
@@ -288,7 +288,7 @@ function drawGuide() {
 function drawStroke(points) {
   if (points.length < 2) return;
   ctx.save();
-  ctx.strokeStyle = "#221F1A";
+  ctx.strokeStyle = "#33323E";
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
   for (let i = 1; i < points.length; i++) {
@@ -381,11 +381,11 @@ function scoreCurrent(strokes) {
 }
 
 function rankOf(score) {
-  if (score >= 90) return "秀";
-  if (score >= 80) return "優";
-  if (score >= PASS_SCORE) return "良";
-  if (score >= 55) return "可";
-  return "再";
+  if (score >= 90) return "S";
+  if (score >= 80) return "A";
+  if (score >= PASS_SCORE) return "B";
+  if (score >= 55) return "C";
+  return "D";
 }
 
 function noteFor(r) {
@@ -393,14 +393,14 @@ function noteFor(r) {
   if (r.prs != null) axes.push(r.prs);
   const weakest = Math.min(...axes);
   if (r.total >= PASS_SCORE) {
-    if (r.total >= 90) return "見事な一筆です。次の課題も同じ集中で。";
-    return "合格です。補助線を淡くして再挑戦すると更に力がつきます。";
+    if (r.total >= 90) return "サイコーの線!つぎもこの調子!";
+    return "クリア!補助線を淡くしてもう一回やると、もっと上手くなるよ。";
   }
-  if (r.prs != null && weakest === r.prs) return "筆圧がお手本とずれています。補助線の太さに線を重ねる意識で。";
-  if (currentCourse().hatch && weakest === r.cov) return "間隔が乱れているか、届いていない線があります。等間隔を意識して。";
-  if (weakest === r.cov) return "線が途中で止まっています。始筆から終筆まで一息に。";
-  if (weakest === r.acc) return "お手本から離れています。速さより正確さを優先して。";
-  return "線がガタついています。指先ではなく腕全体で動かす意識を。";
+  if (r.prs != null && weakest === r.prs) return "筆圧がお手本とちがうみたい。補助線の太さに合わせてみて!";
+  if (currentCourse().hatch && weakest === r.cov) return "間かくがバラバラかも。等間かくを意識してみて!";
+  if (weakest === r.cov) return "線がとちゅうで止まってるよ。最後まで一気に!";
+  if (weakest === r.acc) return "お手本からはなれてるかも。スピードより正確に!";
+  return "線がガタガタしてる。指先じゃなく腕ぜんたいで動かそう!";
 }
 
 /* ---------------- 結果表示・進捗 ---------------- */

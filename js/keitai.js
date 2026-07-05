@@ -218,7 +218,7 @@ function renderAtari() {
   // 補助線: 各部品を破線で
   if (alpha > 0) {
     ctx.save();
-    ctx.strokeStyle = `rgba(139, 133, 119, ${alpha})`;
+    ctx.strokeStyle = `rgba(156, 153, 168, ${alpha})`;
     ctx.lineWidth = 3;
     ctx.setLineDash([10, 8]);
     ctx.lineJoin = "round";
@@ -233,7 +233,7 @@ function renderAtari() {
 
   // 始点マーカー: 次に描く部品は大きい●+矢印、他は小さい●
   ctx.save();
-  ctx.fillStyle = "rgba(192, 57, 47, 0.85)";
+  ctx.fillStyle = "rgba(255, 107, 87, 0.95)";
   const nextPi = Math.min(atari.strokes.length, course.parts.length - 1);
   for (let pi = 0; pi < course.parts.length; pi++) {
     const pts = partPoints(pi, 12);
@@ -269,21 +269,21 @@ function updateAtariHint() {
 
 /* ---------------- 結果表示 (Stage 1 と同等・筆圧軸なし) ---------------- */
 function rankOf(score) {
-  if (score >= 90) return "秀";
-  if (score >= 80) return "優";
-  if (score >= PASS_SCORE) return "良";
-  if (score >= 55) return "可";
-  return "再";
+  if (score >= 90) return "S";
+  if (score >= 80) return "A";
+  if (score >= PASS_SCORE) return "B";
+  if (score >= 55) return "C";
+  return "D";
 }
 function noteFor(r) {
   const weakest = Math.min(r.acc, r.cov, r.smo);
   if (r.total >= PASS_SCORE) {
-    if (r.total >= 90) return "見事な形どりです。次の課題も同じ集中で。";
-    return "合格です。補助線を淡くして再挑戦すると更に力がつきます。";
+    if (r.total >= 90) return "かたちバッチリ!つぎもこの調子!";
+    return "クリア!補助線を淡くしてもう一回やると、もっと上手くなるよ。";
   }
-  if (weakest === r.cov) return "部品が抜けているか、大きくずれています。全部品を意識して。";
-  if (weakest === r.acc) return "お手本の形から離れています。位置と大きさを先に決めて。";
-  return "線がガタついています。楕円は一息に回して。";
+  if (weakest === r.cov) return "部品が足りないか、大きくズレてるかも。全部の部品を描こう!";
+  if (weakest === r.acc) return "かたちがお手本とちがうかも。位置と大きさを先に決めよう!";
+  return "線がガタガタしてる。楕円は一気にくるっと!";
 }
 
 function showResult(r) {
@@ -447,7 +447,7 @@ function renderPose() {
   const fig = gesture.figure;
   if (!fig) {
     ctx.save();
-    ctx.fillStyle = "rgba(139, 133, 119, 0.8)";
+    ctx.fillStyle = "rgba(156, 153, 168, 0.8)";
     ctx.font = "500 14px 'Zen Kaku Gothic New', sans-serif";
     ctx.textAlign = "center";
     ctx.fillText("「開始」でポーズが", rect.width / 2, rect.height / 2 - 12);
@@ -475,8 +475,8 @@ function renderPose() {
   const P = p => ({ x: ox + p.x * scale, y: oy + p.y * scale });
 
   ctx.save();
-  ctx.strokeStyle = "#221F1A";
-  ctx.fillStyle = "#221F1A";
+  ctx.strokeStyle = "#33323E";
+  ctx.fillStyle = "#33323E";
   ctx.lineWidth = 2.5;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
@@ -530,7 +530,7 @@ function renderPose() {
 
   // 接地線
   const groundY = oy + maxY * scale + 8;
-  ctx.strokeStyle = "rgba(139, 133, 119, 0.5)";
+  ctx.strokeStyle = "rgba(156, 153, 168, 0.5)";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(rect.width * 0.15, groundY);
@@ -581,7 +581,7 @@ function tick() {
     gesture.timerId = null;
     gesture.running = false;
     els.timerDisp.textContent = "0:00";
-    els.gestureMsg.textContent = "時間です ─ 筆を置いて";
+    els.gestureMsg.textContent = "タイムアップ!";
     els.gestureOverlay.hidden = false;
   }
 }

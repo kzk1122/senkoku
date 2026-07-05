@@ -44,7 +44,7 @@ const MOTIFS = [
     ],
   },
   {
-    id: "ms_nami", glyph: "波", name: "青海波",
+    id: "ms_nami", glyph: "波", name: "なみもよう",
     desc: "同心の半円3つ。間隔を保ちながら弧を重ねる。",
     parts: [
       arcFn(0.5, 0.72, 0.34, 180, 360),
@@ -62,7 +62,7 @@ const MOTIFS = [
     ],
   },
   {
-    id: "ms_ume", glyph: "梅", name: "梅鉢",
+    id: "ms_ume", glyph: "梅", name: "うめの花",
     desc: "中心の円と5枚の花弁。等間隔の配置に集中して。",
     parts: [
       ...[0, 1, 2, 3, 4].map(i =>
@@ -187,7 +187,7 @@ function renderDraw() {
   ctx.clearRect(0, 0, rect.width, rect.height);
 
   // 下敷きモード: お手本を薄く敷く
-  if (state.mode === 1) drawParts(ctx, rect, { color: "#221F1A", alpha: UNDERLAY_ALPHA, width: 3 });
+  if (state.mode === 1) drawParts(ctx, rect, { color: "#33323E", alpha: UNDERLAY_ALPHA, width: 3 });
 
   // 差分オーバーレイ: お手本をユーザーの描画位置へ逆変換して朱で重ねる
   if (state.diffTf) {
@@ -195,7 +195,7 @@ function renderDraw() {
     const { side, ox, oy } = fitBox(rect);
     const parts = currentMotif().parts;
     ctx.save();
-    ctx.strokeStyle = "#C0392F";
+    ctx.strokeStyle = "#FF6B57";
     ctx.globalAlpha = 0.55;
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
@@ -232,10 +232,10 @@ function renderRef() {
 
   const show = state.mode === 0 || (state.mode === 2 && state.memoryVisible);
   if (show) {
-    drawParts(ctx, rect, { color: "#221F1A", alpha: 0.95, width: 3 });
+    drawParts(ctx, rect, { color: "#33323E", alpha: 0.95, width: 3 });
   } else {
     ctx.save();
-    ctx.fillStyle = "rgba(139, 133, 119, 0.8)";
+    ctx.fillStyle = "rgba(156, 153, 168, 0.8)";
     ctx.font = "500 14px 'Zen Kaku Gothic New', sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(state.mode === 2 ? "記憶で描いてください" : "", rect.width / 2, rect.height / 2);
@@ -292,21 +292,21 @@ function compare() {
 }
 
 function rankOf(score) {
-  if (score >= 90) return "秀";
-  if (score >= 80) return "優";
-  if (score >= PASS_SCORE) return "良";
-  if (score >= 55) return "可";
-  return "再";
+  if (score >= 90) return "S";
+  if (score >= 80) return "A";
+  if (score >= PASS_SCORE) return "B";
+  if (score >= 55) return "C";
+  return "D";
 }
 function noteFor(r) {
   const weakest = Math.min(r.acc, r.cov, r.smo);
   if (r.total >= PASS_SCORE) {
-    if (r.total >= 90) return "見事な模写です。朱の重なりを見て、さらに上を。";
-    return "合格です。朱のお手本とのずれを確認して、もう一歩。";
+    if (r.total >= 90) return "バッチリ模写できてる!赤いお手本との重なりもチェック!";
+    return "クリア!赤いお手本とのズレを見て、もう一歩!";
   }
-  if (weakest === r.cov) return "描き落としがあります。部品の数と長さを確認して。";
-  if (weakest === r.acc) return "プロポーションがずれています。部品同士の比率を先に決めて。";
-  return "線がガタついています。ゆっくりでも一息に引いて。";
+  if (weakest === r.cov) return "描き忘れがあるかも。部品の数をチェック!";
+  if (weakest === r.acc) return "バランスがズレてるかも。大きさの比率を先に決めよう!";
+  return "線がガタガタしてる。ゆっくりでも一気に引こう!";
 }
 
 function showResult(r) {
