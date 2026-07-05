@@ -73,6 +73,13 @@ const COURSES = [
 
 const PASS_SCORE = 70;
 const STORAGE_KEY = "senkoku_progress_v1";
+/* 筆の太さ3段階。lineWidth = base + k * pressure(「中」が従来の太さ) */
+const PEN_KEY = "senkoku_pen_v1";
+const PEN_LEVELS = [
+  { label: "筆：細", base: 1.2, k: 4 },
+  { label: "筆：中", base: 2, k: 7 },
+  { label: "筆：太", base: 3, k: 12 },
+];
 const GUIDE_LEVELS = [
   { label: "補助線：濃", alpha: 0.5 },
   { label: "補助線：淡", alpha: 0.18 },
@@ -80,9 +87,17 @@ const GUIDE_LEVELS = [
 ];
 
 /* ---------------- 状態 ---------------- */
+function loadPenLevel() {
+  try {
+    const v = parseInt(localStorage.getItem(PEN_KEY) ?? "1", 10);
+    return v >= 0 && v < PEN_LEVELS.length ? v : 1;
+  } catch { return 1; }
+}
+
 const state = {
   courseIndex: 0,
   guideLevel: 0,
+  penLevel: loadPenLevel(),
   stroke: [],          // 現在の一筆 [{x, y, p, t}] (キャンバス座標)
   drawing: false,
   penSeen: false,      // 一度ペンを検知したら指入力を無視 (パームリジェクション)
@@ -97,6 +112,7 @@ const ctx = canvas.getContext("2d");
 const els = {
   rail: $("courseRail"), glyph: $("courseGlyph"), name: $("courseName"),
   desc: $("courseDesc"), guideBtn: $("guideBtn"), clearBtn: $("clearBtn"),
+  penBtn: $("penBtn"),
   result: $("result"), stampRank: $("stampRank"), stampScore: $("stampScore"),
   barAcc: $("barAcc"), barCov: $("barCov"), barSmo: $("barSmo"),
   valAcc: $("valAcc"), valCov: $("valCov"), valSmo: $("valSmo"),
@@ -190,8 +206,9 @@ function drawStroke(points) {
   ctx.lineJoin = "round";
   for (let i = 1; i < points.length; i++) {
     const a = points[i - 1], b = points[i];
-    // 筆圧で太さを変える (マウスは pressure=0.5 相当)
-    ctx.lineWidth = 2 + 7 * (b.p || 0.5);
+    // 筆圧で太さを変える (マウスは pressure=0.5 相当)。ベースは筆の太さ設定に従う
+    const pen = PEN_LEVELS[state.penLevel];
+    ctx.lineWidth = pen.base + pen.k * (b.p || 0.5);
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
@@ -456,6 +473,13 @@ function selectCourse(i) {
 }
 
 /* ---------------- コントロール ---------------- */
+els.penBtn.addEventListener("click", () => {
+  state.penLevel = (state.penLevel + 1) % PEN_LEVELS.length;
+  els.penBtn.textContent = PEN_LEVELS[state.penLevel].label;
+  try { localStorage.setItem(PEN_KEY, String(state.penLevel)); } catch { /* private mode */ }
+  render();
+});
+
 els.guideBtn.addEventListener("click", () => {
   state.guideLevel = (state.guideLevel + 1) % GUIDE_LEVELS.length;
   els.guideBtn.textContent = GUIDE_LEVELS[state.guideLevel].label;
@@ -480,5 +504,6 @@ els.nextBtn.addEventListener("click", () => {
 
 /* ---------------- 初期化 ---------------- */
 window.addEventListener("resize", resizeCanvas);
+els.penBtn.textContent = PEN_LEVELS[state.penLevel].label; // 保存された太さ設定を反映
 selectCourse(0);
 resizeCanvas();
