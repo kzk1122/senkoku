@@ -3,8 +3,8 @@
    Palette: クリーム × コーラル × ティール × イエロー (フルポップ)
    ============================================================ */
 :root {
-  --paper: #FFFDF7;
-  --paper-deep: #F3EFE4;
+  --paper: #FFF5DE;
+  --paper-deep: #F6ECD2;
   --ink: #33323E;
   --ink-soft: #5A5866;
   --nibi: #9C99A8;          /* muted text / guides */
@@ -27,8 +27,9 @@ body {
   font-family: var(--font-body);
   font-weight: 500;
   background:
-    radial-gradient(900px 500px at 85% -10%, rgba(46, 196, 182, 0.08), transparent 60%),
-    radial-gradient(700px 400px at -10% 30%, rgba(255, 201, 60, 0.10), transparent 60%),
+    radial-gradient(900px 500px at 85% -10%, rgba(46, 196, 182, 0.16), transparent 60%),
+    radial-gradient(700px 400px at -10% 30%, rgba(255, 107, 87, 0.10), transparent 60%),
+    radial-gradient(800px 500px at 50% 110%, rgba(255, 201, 60, 0.18), transparent 60%),
     var(--paper);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
@@ -118,10 +119,10 @@ body {
 .chip-best  { font-size: 0.66rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .chip-best.passed { color: var(--shu-deep); font-weight: 800; }
 
-.chip.active { background: var(--ink) !important; color: #fff; }
+.chip.active { background: var(--shu) !important; color: #fff; }
 .chip.active .chip-name { color: #fff; }
-.chip.active .chip-best { color: rgba(255, 255, 255, 0.75); }
-.chip.active .chip-best.passed { color: var(--sunny); }
+.chip.active .chip-best { color: rgba(255, 255, 255, 0.8); }
+.chip.active .chip-best.passed { color: #FFE9A8; }
 
 /* ---------- Stage ---------- */
 .stage { display: flex; flex-direction: column; gap: 12px; }
