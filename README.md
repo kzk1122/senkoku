@@ -24,37 +24,13 @@ python3 -m http.server 8000
 
 iPad で試す場合は、同じ Wi-Fi 上の PC のローカル IP(例 `http://192.168.x.x:8000`)を Safari で開きます。
 
-## GitHub へのアップロード
-
-```bash
-cd senkoku
-git init
-git add .
-git commit -m "初回コミット: 運筆道場 Stage 1 プロトタイプ"
-git branch -M main
-git remote add origin https://github.com/<ユーザー名>/senkoku.git
-git push -u origin main
-```
-
-## Cloudflare Pages へのデプロイ
-
-1. Cloudflare ダッシュボード → **Workers & Pages** → **Create** → **Pages** → **Connect to Git**
-2. リポジトリ `senkoku` を選択
-3. ビルド設定:
-   - Framework preset: **None**
-   - Build command: (空欄)
-   - Build output directory: `/`
-4. Deploy を実行
-
-Iemono / HibiOri と同じ静的ホスティング構成なので、追加設定は不要です。
-
 ## 採点アルゴリズム
 
 | 指標 | 重み | 内容 |
 |---|---|---|
 | 精度 | 50% | 描いた各点からお手本パスまでの平均距離(お手本サイズで正規化) |
 | 網羅 | 30% | お手本の各サンプル点の近傍(サイズの5.5%以内)を通過した割合 |
-| 滑らか | 20% | 等間隔リサンプリング後の角度変化(二階差分)から、お手本自身の曲率を差し引いた「余分なガタつき」 |
+| 滑らか | 20% | 前平滑化(等間隔リサンプリング → 3点移動平均×2)した線の角度変化(二階差分)から、お手本自身の曲率を差し引いた「余分なガタつき」 |
 
 さらに網羅率によるゲートがあり、線が途中で終わっている場合(網羅率90%未満)は合計点が段階的に減点され、40%以下では0点になります。「一筆で最後まで描き切る」ことを最優先で評価します。
 
