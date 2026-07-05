@@ -1,5 +1,5 @@
 /* 線刻 − minimal cache-first service worker */
-const CACHE = "senkoku-v7";
+const CACHE = "senkoku-v8";
 const ASSETS = [
   ".",
   "index.html",

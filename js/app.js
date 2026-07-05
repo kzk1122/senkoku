@@ -449,7 +449,8 @@ function scoreStrokes(strokes) {
   // 精度: 描いた各点からお手本までの平均距離
   // 筆圧課題では、最近傍のお手本位置 t に対応する目標筆圧との誤差も同時に集計
   const pf = course.pressureFn;
-  let errSum = 0, pErrSum = 0;
+  let errSum = 0;
+  const pPairs = pf ? [] : null; // [実筆圧, 目標筆圧] のペア
   for (const p of stroke) {
     let best = Infinity, bestI = 0;
     for (let i = 0; i < target.length; i++) {
@@ -457,15 +458,25 @@ function scoreStrokes(strokes) {
       if (d < best) { best = d; bestI = i; }
     }
     errSum += best;
-    if (pf) pErrSum += Math.abs((p.p || 0.5) - pf(bestI / (target.length - 1)));
+    if (pf) pPairs.push([p.p || 0.5, pf(bestI / (target.length - 1))]);
   }
   const meanErr = errSum / stroke.length / size;
   const acc = clamp01(1 - (meanErr - 0.008) / 0.05) * 100;
 
   // 筆圧: 目標筆圧カーブとの平均誤差 (筆圧課題のみ)
-  const prs = pf
-    ? clamp01(1 - (pErrSum / stroke.length - 0.02) / 0.20) * 100
-    : null;
+  // 筆圧の絶対値は個人差が大きい (自然な筆記圧が 0.2 の人も 0.7 の人もいる) ため、
+  // ユーザーの平均筆圧を目標カーブの平均に合わせるオフセット補正 (±0.35 まで) をかけ、
+  // 「圧の変化の形」を採点する。絶対値比較だと実機で prs=0 に張り付く (2026-07 確認)
+  let prs = null;
+  if (pf) {
+    let mp = 0, mt = 0;
+    for (const [pv, tv] of pPairs) { mp += pv; mt += tv; }
+    mp /= pPairs.length; mt /= pPairs.length;
+    const offset = Math.max(-0.35, Math.min(0.35, mt - mp));
+    let pErrSum = 0;
+    for (const [pv, tv] of pPairs) pErrSum += Math.abs(pv + offset - tv);
+    prs = clamp01(1 - (pErrSum / pPairs.length - 0.03) / 0.22) * 100;
+  }
 
   // 網羅: お手本の各点の近くを通過したか
   const covTol = size * 0.055;

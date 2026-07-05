@@ -112,15 +112,19 @@ function check(label, r, expected) {
     zenkyo:  { pathFn: t => ({ x: 0.12 + 0.76 * t, y: 0.5 }), pressureFn: t => 0.2 + 0.6 * t },
     nuki:    { pathFn: t => ({ x: 0.75 - 0.50 * t - 0.08 * Math.sin(Math.PI * t), y: 0.15 + 0.70 * t }), pressureFn: t => 0.8 - 0.65 * t },
   };
-  /* 期待値: 課題ごとに [完璧, 良い制御, 並, 制御できず, マウス0.5固定] */
+  /* 期待値: 課題ごとに [完璧, 良い制御, 軽筆圧, 強筆圧, 並, 制御できず, マウス0.5固定]
+     ※軽筆圧/強筆圧 = 自然な筆記圧が目標から±0.25 ずれている人。
+       オフセット補正により「圧の変化の形」が合っていれば高得点になること */
   const EXPECTED = {
-    kinatsu: [96, 95, 90, 28, 96],
-    zenkyo:  [96, 95, 90, 35, 35],
-    nuki:    [96, 95, 91, 33, 23],
+    kinatsu: [96, 96, 96, 96, 92, 59, 96],
+    zenkyo:  [96, 96, 96, 96, 92, 65, 55],
+    nuki:    [96, 96, 96, 96, 92, 62, 44],
   };
   const SCENARIOS = [
     ["完璧な筆圧",      { wander: 0.0, noise: 0.0 }],
     ["良い制御",        { wander: 0.04, noise: 0.02 }],
+    ["軽い筆圧の人",    { wander: 0.04, noise: 0.02, bias: -0.25 }],
+    ["強い筆圧の人",    { wander: 0.04, noise: 0.02, bias: 0.25 }],
     ["並の制御",        { wander: 0.10, noise: 0.03 }],
     ["制御できず",      { wander: 0.22, noise: 0.05, drift: 0.15 }],
     ["マウス(0.5固定)", { mouse: true }],
@@ -149,7 +153,7 @@ function check(label, r, expected) {
         const targetP = course.pressureFn(t);
         let pv;
         if (prof.mouse) pv = 0.5;
-        else pv = targetP + prof.wander * Math.sin((s / 120) * Math.PI * 2 + ph3) + gauss() * prof.noise + (prof.drift || 0) * t;
+        else pv = targetP + (prof.bias || 0) + prof.wander * Math.sin((s / 120) * Math.PI * 2 + ph3) + gauss() * prof.noise + (prof.drift || 0) * t;
         stroke.push({
           x: p.x * W + nx * tremor + gauss() * 0.3,
           y: p.y * H + ny * tremor + gauss() * 0.3,
