@@ -91,6 +91,16 @@ const COURSES = [
     }),
     pressureFn: t => 0.8 - 0.65 * t,
   },
+  /* --- 複数ストローク課題 (hatch.lines 本描き終えると自動採点) --- */
+  {
+    id: "hatch", glyph: "彡", name: "ハッチング",
+    desc: "斜めの平行線を6本、等間隔に。角度と速さを揃えるのがコツ。",
+    hatch: { lines: 6 },
+    lineFn: (i, t) => ({
+      x: 0.32 + 0.104 * i - 0.16 * t,
+      y: 0.2 + 0.6 * t,
+    }),
+  },
 ];
 
 const PASS_SCORE = 70;
@@ -121,6 +131,8 @@ const state = {
   guideLevel: 0,
   penLevel: loadPenLevel(),
   stroke: [],          // 現在の一筆 [{x, y, p, t}] (キャンバス座標)
+  strokes: [],         // 描き終えた筆のリスト (複数ストローク課題用)
+  justScored: false,   // 採点直後 (次の pointerdown で全消去する)
   drawing: false,
   penSeen: false,      // 一度ペンを検知したら指入力を無視 (パームリジェクション)
   activePointerId: null,
@@ -171,13 +183,32 @@ function resizeCanvas() {
 
 function currentCourse() { return COURSES[state.courseIndex]; }
 
-/* お手本パスをキャンバス座標の点列に変換 */
+/* お手本パスをキャンバス座標の点列に変換。
+   ハッチング課題は全ラインのサンプルを連結した集合を返す */
 function targetPoints(n = 240) {
+  const c = currentCourse();
+  if (c.hatch) {
+    const per = Math.max(2, Math.floor(n / c.hatch.lines));
+    const pts = [];
+    for (let li = 0; li < c.hatch.lines; li++) pts.push(...targetLinePoints(li, per));
+    return pts;
+  }
   const rect = canvas.getBoundingClientRect();
   const pts = [];
-  const fn = currentCourse().pathFn;
   for (let i = 0; i <= n; i++) {
-    const p = fn(i / n);
+    const p = c.pathFn(i / n);
+    pts.push({ x: p.x * rect.width, y: p.y * rect.height });
+  }
+  return pts;
+}
+
+/* ハッチングの li 本目のラインをキャンバス座標で */
+function targetLinePoints(li, n = 40) {
+  const rect = canvas.getBoundingClientRect();
+  const fn = currentCourse().lineFn;
+  const pts = [];
+  for (let i = 0; i <= n; i++) {
+    const p = fn(li, i / n);
     pts.push({ x: p.x * rect.width, y: p.y * rect.height });
   }
   return pts;
@@ -187,18 +218,30 @@ function render() {
   const rect = canvas.getBoundingClientRect();
   ctx.clearRect(0, 0, rect.width, rect.height);
   drawGuide();
+  for (const s of state.strokes) drawStroke(s);
   drawStroke(state.stroke);
 }
 
 function drawGuide() {
   const alpha = GUIDE_LEVELS[state.guideLevel].alpha;
-  const pts = targetPoints();
-  const pf = currentCourse().pressureFn;
+  const course = currentCourse();
+  const pts = course.hatch ? targetLinePoints(0) : targetPoints();
+  const pf = course.pressureFn;
   if (alpha > 0) {
     ctx.save();
     ctx.strokeStyle = `rgba(139, 133, 119, ${alpha})`;
     ctx.lineJoin = "round";
-    if (pf) {
+    if (course.hatch) {
+      // ハッチング: 各ラインを破線で
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 8]);
+      for (let li = 0; li < course.hatch.lines; li++) {
+        const lp = targetLinePoints(li);
+        ctx.beginPath();
+        lp.forEach((p, i) => (i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y)));
+        ctx.stroke();
+      }
+    } else if (pf) {
       // 筆圧課題: 目標筆圧を線の太さで可視化 (現在の筆設定と同じ式・実線)
       const pen = PEN_LEVELS[state.penLevel];
       ctx.lineCap = "round";
@@ -226,6 +269,15 @@ function drawGuide() {
   ctx.beginPath();
   ctx.arc(start.x, start.y, 6, 0, Math.PI * 2);
   ctx.fill();
+  // ハッチング: 2本目以降の始点にも小さな●を打つ
+  if (course.hatch) {
+    for (let li = 1; li < course.hatch.lines; li++) {
+      const s = targetLinePoints(li, 2)[0];
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
   const ang = Math.atan2(ahead.y - start.y, ahead.x - start.x);
   ctx.translate(start.x + Math.cos(ang) * 22, start.y + Math.sin(ang) * 22);
   ctx.rotate(ang);
@@ -277,6 +329,9 @@ canvas.addEventListener("pointerdown", e => {
   if (!acceptPointer(e)) return;
   if (state.drawing) return;
   hideResult();
+  // 単筆課題は毎回、複数ストローク課題は採点直後のみ前の筆を消す
+  if (state.justScored || !currentCourse().hatch) state.strokes = [];
+  state.justScored = false;
   state.drawing = true;
   state.activePointerId = e.pointerId;
   state.stroke = [toLocal(e)];
@@ -298,9 +353,20 @@ function endStroke(e) {
   if (!state.drawing || e.pointerId !== state.activePointerId) return;
   state.drawing = false;
   state.activePointerId = null;
-  if (state.stroke.length >= 8) {
-    showResult(scoreStroke(state.stroke));
+  if (state.stroke.length < 8) { // 短すぎる線は無視
+    state.stroke = [];
+    render();
+    return;
   }
+  const course = currentCourse();
+  state.strokes.push(state.stroke);
+  state.stroke = [];
+  const need = course.hatch ? course.hatch.lines : 1;
+  if (state.strokes.length >= need) {
+    showResult(scoreStrokes(state.strokes));
+    state.justScored = true;
+  }
+  updateHint();
 }
 canvas.addEventListener("pointerup", endStroke);
 canvas.addEventListener("pointercancel", endStroke);
@@ -366,7 +432,11 @@ function jitterOf(points, step) {
 
 const clamp01 = v => Math.max(0, Math.min(1, v));
 
-function scoreStroke(stroke) {
+/* strokes: 筆のリスト (単筆課題は要素1つ)。
+   精度・網羅・筆圧は全点をまとめて、滑らかさは1本ずつ測って点数加重平均 */
+function scoreStrokes(strokes) {
+  const course = currentCourse();
+  const stroke = strokes.flat(); // 精度・網羅・筆圧用の全点
   const target = targetPoints();
   // お手本の大きさで正規化 (画面サイズに依存しないように)
   let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
@@ -378,7 +448,7 @@ function scoreStroke(stroke) {
 
   // 精度: 描いた各点からお手本までの平均距離
   // 筆圧課題では、最近傍のお手本位置 t に対応する目標筆圧との誤差も同時に集計
-  const pf = currentCourse().pressureFn;
+  const pf = course.pressureFn;
   let errSum = 0, pErrSum = 0;
   for (const p of stroke) {
     let best = Infinity, bestI = 0;
@@ -412,9 +482,16 @@ function scoreStroke(stroke) {
   // 前平滑化(等間隔リサンプリング→3点移動平均×2)してマクロなうねりだけを測る。
   // 前平滑化なし・step=size/90・許容0.45 だと丁寧に引いた線でも smo=0 に張り付く
   // (2026-07 iPad 実機で確認 → シミュレーションで再調整済み)
+  // 複数ストローク課題は1本ずつ測って点数加重平均 (お手本側は直線なので基準曲率 0)
   const step = size / 45;
-  const smoothed = smoothPts(smoothPts(resample(stroke, step / 2)));
-  const excess = Math.max(0, jitterOf(smoothed, step) - jitterOf(target, step));
+  const refJitter = course.hatch ? 0 : jitterOf(target, step);
+  let excSum = 0, excW = 0;
+  for (const st of strokes) {
+    const smoothed = smoothPts(smoothPts(resample(st, step / 2)));
+    excSum += Math.max(0, jitterOf(smoothed, step) - refJitter) * st.length;
+    excW += st.length;
+  }
+  const excess = excSum / excW;
   const smo = clamp01(1 - excess / 0.30) * 100;
 
   // 網羅率が低い(線が途中で終わっている)場合は合計点を大きく減点するゲート
@@ -423,7 +500,10 @@ function scoreStroke(stroke) {
     ? acc * 0.35 + cov * 0.25 + smo * 0.15 + prs * 0.25
     : acc * 0.5 + cov * 0.3 + smo * 0.2;
   // 筆圧課題では筆圧が悪すぎる場合もゲートで減点 (prs 60+ なら減点なし)
-  const gate = clamp01((cov - 40) / 50) * (pf ? clamp01((prs - 15) / 45) : 1);
+  // ハッチングは「全ラインを埋める」のが本質なので網羅ゲートを厳しく
+  // (1本抜け=cov83% でも大幅減点になるように)
+  const covGate = course.hatch ? clamp01((cov - 60) / 35) : clamp01((cov - 40) / 50);
+  const gate = covGate * (pf ? clamp01((prs - 15) / 45) : 1);
   const total = Math.round(base * gate);
   const avgPressure = stroke.reduce((s, p) => s + (p.p || 0), 0) / stroke.length;
 
@@ -450,6 +530,7 @@ function noteFor(r) {
     return "合格です。補助線を淡くして再挑戦すると更に力がつきます。";
   }
   if (r.prs != null && weakest === r.prs) return "筆圧がお手本とずれています。補助線の太さに線を重ねる意識で。";
+  if (currentCourse().hatch && weakest === r.cov) return "間隔が乱れているか、届いていない線があります。等間隔を意識して。";
   if (weakest === r.cov) return "線が途中で止まっています。始筆から終筆まで一息に。";
   if (weakest === r.acc) return "お手本から離れています。速さより正確さを優先して。";
   return "線がガタついています。指先ではなく腕全体で動かす意識を。";
@@ -521,6 +602,8 @@ function renderRail() {
 function selectCourse(i) {
   state.courseIndex = i;
   state.stroke = [];
+  state.strokes = [];
+  state.justScored = false;
   hideResult();
   const c = currentCourse();
   els.glyph.textContent = c.glyph;
@@ -528,6 +611,21 @@ function selectCourse(i) {
   els.desc.textContent = c.desc;
   renderRail();
   render();
+  updateHint();
+}
+
+/* ヒント欄: 複数ストローク課題では進捗 (n/6 本) を表示 */
+function updateHint() {
+  const c = currentCourse();
+  if (c.hatch) {
+    const done = state.strokes.length;
+    els.hint.textContent =
+      done > 0 && done < c.hatch.lines
+        ? `${done} / ${c.hatch.lines} 本 ─ 残り ${c.hatch.lines - done} 本を等間隔に描くと採点されます。`
+        : `●印から矢印の方向へ。平行線を ${c.hatch.lines} 本描き終えると採点されます。`;
+  } else {
+    els.hint.textContent = "●印から矢印の方向へ、一筆で線をなぞってください。Apple Pencilの筆圧で線の太さが変わります。";
+  }
 }
 
 /* ---------------- コントロール ---------------- */
@@ -546,14 +644,20 @@ els.guideBtn.addEventListener("click", () => {
 
 els.clearBtn.addEventListener("click", () => {
   state.stroke = [];
+  state.strokes = [];
+  state.justScored = false;
   hideResult();
   render();
+  updateHint();
 });
 
 els.retryBtn.addEventListener("click", () => {
   state.stroke = [];
+  state.strokes = [];
+  state.justScored = false;
   hideResult();
   render();
+  updateHint();
 });
 
 els.nextBtn.addEventListener("click", () => {
