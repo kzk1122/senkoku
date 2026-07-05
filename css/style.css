@@ -175,7 +175,8 @@ body {
   aspect-ratio: 4 / 3;
 }
 
-#canvas {
+/* .canvas-wrap 内の canvas 全般 (Stage 1 の #canvas / Stage 2 の #atariCanvas) */
+.canvas-wrap canvas {
   position: absolute;
   inset: 0;
   width: 100%;
