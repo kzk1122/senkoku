@@ -53,6 +53,22 @@ const COURSES = [
       return { x: 0.5 + r * Math.cos(a), y: 0.5 + r * Math.sin(a) };
     },
   },
+  {
+    id: "taiko", glyph: "⌒", name: "大弧",
+    desc: "画面いっぱいの大きな弧を一息で。指先でなく肩から動かす。",
+    pathFn: t => ({
+      x: 0.5 - 0.38 * Math.cos(Math.PI * t),
+      y: 0.72 - 0.44 * Math.sin(Math.PI * t),
+    }),
+  },
+  {
+    id: "sji", glyph: "乙", name: "S字",
+    desc: "上から下へ、曲がりの向きをなめらかに切り替える。",
+    pathFn: t => ({
+      x: 0.5 - 0.24 * Math.sin(t * Math.PI * 2),
+      y: 0.12 + 0.76 * t,
+    }),
+  },
 ];
 
 const PASS_SCORE = 70;
