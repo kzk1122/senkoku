@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>線刻 − 模写道場</title>
+  <meta name="description" content="お手本を隣に・下敷きに・記憶で。段階的に難しくなる模写練習" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#F6F1E4" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="header">
+      <div class="header-main">
+        <h1 class="title"><img class="logo" src="icons/logo.svg" alt="senkoku − 線刻" /></h1>
+        <p class="subtitle">模写道場 ─ 第三段</p>
+        <div class="stage-links">
+          <a class="stage-link" href="index.html">← 運筆道場</a>
+          <a class="stage-link" href="keitai.html">← 形体道場</a>
+        </div>
+      </div>
+      <p class="tagline">目に写し、<br />手で刻む</p>
+    </header>
+
+    <nav class="course-rail" id="courseRail" aria-label="題材一覧"></nav>
+
+    <main class="stage">
+      <div class="stage-head">
+        <div class="course-info">
+          <span class="course-glyph" id="courseGlyph">月</span>
+          <div>
+            <h2 class="course-name" id="courseName">三日月</h2>
+            <p class="course-desc" id="courseDesc"></p>
+          </div>
+        </div>
+        <nav class="tabs tabs-small" id="modeTabs" aria-label="難易度">
+          <button class="tab active" type="button">隣に表示</button>
+          <button class="tab" type="button">下敷き</button>
+          <button class="tab" type="button">記憶</button>
+        </nav>
+      </div>
+
+      <div class="stage-tools mosha-tools">
+        <button class="btn btn-ghost" id="penBtn" type="button">筆&#xFF1A;中</button>
+        <button class="btn btn-ghost" id="undoBtn" type="button">一筆戻す</button>
+        <button class="btn btn-ghost" id="clearBtn" type="button">消す</button>
+        <button class="btn btn-ghost" id="peekBtn" type="button" hidden>お手本を見る</button>
+        <button class="btn btn-shu" id="compareBtn" type="button" disabled>見比べる</button>
+      </div>
+
+      <div class="gesture-wrap" id="moshaWrap">
+        <div class="pose-pane" id="refPane">
+          <canvas id="refCanvas"></canvas>
+          <span class="timer" id="timerDisp"></span>
+        </div>
+        <div class="draw-pane">
+          <canvas id="drawCanvas"></canvas>
+
+          <div class="result" id="result" hidden>
+            <div class="stamp" id="stamp">
+              <span class="stamp-rank" id="stampRank">良</span>
+              <span class="stamp-score" id="stampScore">72</span>
+            </div>
+            <div class="result-detail">
+              <div class="meter"><span class="meter-label">精度</span><span class="meter-bar"><i id="barAcc"></i></span><span class="meter-val" id="valAcc"></span></div>
+              <div class="meter"><span class="meter-label">網羅</span><span class="meter-bar"><i id="barCov"></i></span><span class="meter-val" id="valCov"></span></div>
+              <div class="meter"><span class="meter-label">滑らか</span><span class="meter-bar"><i id="barSmo"></i></span><span class="meter-val" id="valSmo"></span></div>
+              <p class="result-note" id="resultNote"></p>
+              <div class="result-actions">
+                <button class="btn btn-solid" id="retryBtn" type="button">もう一度</button>
+                <button class="btn btn-shu" id="nextBtn" type="button" hidden>次の段階へ</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="hint" id="moshaHint"></p>
+    </main>
+
+    <footer class="footer">
+      <span id="penStatus">入力待ち</span>
+      <span>最高記録はこの端末に保存されます</span>
+    </footer>
+  </div>
+
+  <script src="js/scoring.js"></script>
+  <script src="js/surface.js"></script>
+  <script src="js/mosha.js"></script>
+</body>
+</html>

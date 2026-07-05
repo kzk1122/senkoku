@@ -8,12 +8,6 @@
 
 const PASS_SCORE = 70;
 const STORAGE_KEY = "senkoku_progress_v1"; // Stage 1 と共有 (課題 id はユニーク)
-const PEN_KEY = "senkoku_pen_v1";
-const PEN_LEVELS = [
-  { label: "筆：細", base: 1.2, k: 4 },   // 筆:細
-  { label: "筆：中", base: 2, k: 7 },     // 筆:中
-  { label: "筆：太", base: 3, k: 12 },    // 筆:太
-];
 const GUIDE_LEVELS = [
   { label: "補助線：濃", alpha: 0.5 },
   { label: "補助線：淡", alpha: 0.18 },
@@ -74,19 +68,11 @@ function saveProgress() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.progress)); }
   catch { /* private mode */ }
 }
-function loadPenLevel() {
-  try {
-    const v = parseInt(localStorage.getItem(PEN_KEY) ?? "1", 10);
-    return v >= 0 && v < PEN_LEVELS.length ? v : 1;
-  } catch { return 1; }
-}
 
 /* ---------------- 状態 ---------------- */
 const state = {
   courseIndex: 0,
   guideLevel: 0,
-  penLevel: loadPenLevel(),
-  penSeen: false,
   justScored: false,
   progress: loadProgress(),
 };
@@ -115,98 +101,10 @@ function isUnlocked(i) {
   return (bestOf(ATARI_COURSES[i - 1].id) ?? 0) >= PASS_SCORE;
 }
 
-/* ---------------- 共通: 描画サーフェス ----------------
-   canvas ごとのストローク管理・ポインタ入力・筆圧描画をまとめる */
-function acceptPointer(e) {
-  if (e.pointerType === "pen") {
-    if (!state.penSeen) {
-      state.penSeen = true;
-      els.penStatus.textContent = "Apple Pencil 検出 ✓ (筆圧有効)";
-    }
-    return true;
-  }
-  if (e.pointerType === "touch") return !state.penSeen;
-  return true; // mouse
-}
-
-function makeSurface(canvasEl, hooks) {
-  const ctx = canvasEl.getContext("2d");
-  const sf = { canvas: canvasEl, ctx, stroke: [], strokes: [], drawing: false, pid: null };
-
-  function toLocal(e) {
-    const rect = canvasEl.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top, p: e.pressure || 0.5, t: e.timeStamp };
-  }
-
-  canvasEl.addEventListener("pointerdown", e => {
-    if (!acceptPointer(e)) return;
-    if (hooks.canDraw && !hooks.canDraw()) return;
-    if (sf.drawing) return;
-    if (hooks.onDown) hooks.onDown();
-    sf.drawing = true;
-    sf.pid = e.pointerId;
-    sf.stroke = [toLocal(e)];
-    canvasEl.setPointerCapture(e.pointerId);
-    hooks.render();
-    e.preventDefault();
-  });
-
-  canvasEl.addEventListener("pointermove", e => {
-    if (!sf.drawing || e.pointerId !== sf.pid) return;
-    const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
-    for (const ev of events) sf.stroke.push(toLocal(ev));
-    hooks.render();
-    e.preventDefault();
-  });
-
-  function end(e) {
-    if (!sf.drawing || e.pointerId !== sf.pid) return;
-    sf.drawing = false;
-    sf.pid = null;
-    if (sf.stroke.length >= 8) {
-      sf.strokes.push(sf.stroke);
-      sf.stroke = [];
-      if (hooks.onStroke) hooks.onStroke();
-    } else {
-      sf.stroke = []; // 短すぎる線は無視
-    }
-    hooks.render();
-  }
-  canvasEl.addEventListener("pointerup", end);
-  canvasEl.addEventListener("pointercancel", end);
-
-  sf.clear = () => { sf.stroke = []; sf.strokes = []; };
-  sf.resize = () => {
-    const rect = canvasEl.getBoundingClientRect();
-    if (rect.width === 0) return; // 非表示タブ
-    const dpr = window.devicePixelRatio || 1;
-    canvasEl.width = Math.round(rect.width * dpr);
-    canvasEl.height = Math.round(rect.height * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    hooks.render();
-  };
-  return sf;
-}
-
-function drawStrokesOf(sf) {
-  const ctx = sf.ctx;
-  const pen = PEN_LEVELS[state.penLevel];
-  ctx.save();
-  ctx.strokeStyle = "#221F1A";
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-  for (const points of [...sf.strokes, sf.stroke]) {
-    for (let i = 1; i < points.length; i++) {
-      const a = points[i - 1], b = points[i];
-      ctx.lineWidth = pen.base + pen.k * (b.p || 0.5);
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
-}
+/* 入力・筆描画の部品は js/surface.js (makeSurface / drawStrokesOf) を使用 */
+surfaceState.onPenDetect = () => {
+  els.penStatus.textContent = "Apple Pencil 検出 ✓ (筆圧有効)";
+};
 
 /* ============================================================
    アタリ課題
@@ -645,11 +543,10 @@ els.tabAtari.addEventListener("click", () => showTab("atari"));
 els.tabGesture.addEventListener("click", () => showTab("gesture"));
 
 function cyclePen() {
-  state.penLevel = (state.penLevel + 1) % PEN_LEVELS.length;
-  const label = PEN_LEVELS[state.penLevel].label;
+  setPenLevel((surfaceState.penLevel + 1) % PEN_LEVELS.length);
+  const label = PEN_LEVELS[surfaceState.penLevel].label;
   els.penBtn.textContent = label;
   els.gPenBtn.textContent = label;
-  try { localStorage.setItem(PEN_KEY, String(state.penLevel)); } catch { /* private mode */ }
   renderAtari();
   renderGesture();
 }
@@ -698,8 +595,8 @@ window.addEventListener("resize", () => {
   gSurface.resize();
   if (!els.gestureSec.hidden) renderPose();
 });
-els.penBtn.textContent = PEN_LEVELS[state.penLevel].label;
-els.gPenBtn.textContent = PEN_LEVELS[state.penLevel].label;
+els.penBtn.textContent = PEN_LEVELS[surfaceState.penLevel].label;
+els.gPenBtn.textContent = PEN_LEVELS[surfaceState.penLevel].label;
 els.timeBtn.textContent = TIMES[gesture.timeIdx].label;
 els.timerDisp.textContent = fmtTime(TIMES[gesture.timeIdx].sec);
 selectCourse(0);

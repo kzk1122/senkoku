@@ -75,12 +75,17 @@ function jitterOf(points, step) {
    - opts.partTargets: 部品ごとのお手本点列の配列 (複数ストローク課題で、
      楕円など曲率を持つ部品があるとき用)。各筆を重心が最寄りの部品に
      マッチングし、その部品の曲率を滑らかさの基準にする
+   - opts.accScale / opts.covTolRatio: 精度・網羅の許容値
+     (デフォルトはなぞり課題用。模写のようにフリーハンドで形を写す
+      課題では緩めの値を渡す)
    精度・網羅・筆圧は全点をまとめて、滑らかさは1本ずつ測って点数加重平均
    ------------------------------------------------------------ */
 function scoreStrokes(strokes, target, opts = {}) {
   const pf = opts.pressureFn || null;
   const multiStroke = !!opts.multiStroke;
   const partTargets = opts.partTargets || null;
+  const accScale = opts.accScale ?? 0.05;
+  const covTolRatio = opts.covTolRatio ?? 0.055;
   const stroke = strokes.flat(); // 精度・網羅・筆圧用の全点
 
   // お手本の大きさで正規化 (画面サイズに依存しないように)
@@ -105,7 +110,7 @@ function scoreStrokes(strokes, target, opts = {}) {
     if (pf) pPairs.push([p.p || 0.5, pf(bestI / (target.length - 1))]);
   }
   const meanErr = errSum / stroke.length / size;
-  const acc = clamp01(1 - (meanErr - 0.008) / 0.05) * 100;
+  const acc = clamp01(1 - (meanErr - 0.008) / accScale) * 100;
 
   // 筆圧: 目標筆圧カーブとの平均誤差 (筆圧課題のみ)
   // 筆圧の絶対値は個人差が大きい (自然な筆記圧が 0.2 の人も 0.7 の人もいる) ため、
@@ -123,7 +128,7 @@ function scoreStrokes(strokes, target, opts = {}) {
   }
 
   // 網羅: お手本の各点の近くを通過したか
-  const covTol = size * 0.055;
+  const covTol = size * covTolRatio;
   let covered = 0;
   for (const q of target) {
     for (const p of stroke) {
@@ -131,6 +136,22 @@ function scoreStrokes(strokes, target, opts = {}) {
     }
   }
   const cov = (covered / target.length) * 100;
+
+  // 部品ごとの網羅率の最低値 (partTargets があるときのみ)。
+  // 小さい部品の描き忘れは合併の網羅率では殆ど下がらないため、これで検出する
+  let minPartCov = null;
+  if (partTargets) {
+    minPartCov = 100;
+    for (const pts of partTargets) {
+      let c = 0;
+      for (const q of pts) {
+        for (const p of stroke) {
+          if (dist(p, q) <= covTol) { c++; break; }
+        }
+      }
+      minPartCov = Math.min(minPartCov, (c / pts.length) * 100);
+    }
+  }
 
   // 滑らかさ: お手本自身の曲率を差し引いた「余分なガタつき」
   // 実機の Apple Pencil はセンサノイズ+微細な手ブレが乗るため、
@@ -176,18 +197,55 @@ function scoreStrokes(strokes, target, opts = {}) {
   // 筆圧課題では筆圧が悪すぎる場合もゲートで減点 (prs 60+ なら減点なし)
   // 複数ストローク課題は「全部品を埋める」のが本質なので網羅ゲートを厳しく
   // (1本抜け=cov83% でも大幅減点になるように)
+  // 部品つき課題ではさらに「部品最低cov」ゲート (60+ で減点なし)
+  // → 小さい部品の描き忘れ・大きさの大間違いを確実に不合格にする
   const covGate = multiStroke ? clamp01((cov - 60) / 35) : clamp01((cov - 40) / 50);
-  const gate = covGate * (pf ? clamp01((prs - 15) / 45) : 1);
+  const gate = covGate
+    * (pf ? clamp01((prs - 15) / 45) : 1)
+    * (minPartCov != null ? clamp01((minPartCov - 20) / 40) : 1);
   const total = Math.round(base * gate);
   const avgPressure = stroke.reduce((s, p) => s + (p.p || 0), 0) / stroke.length;
 
   return {
     total, acc: Math.round(acc), cov: Math.round(cov), smo: Math.round(smo),
     prs: prs == null ? null : Math.round(prs), avgPressure,
+    minPartCov: minPartCov == null ? null : Math.round(minPartCov),
   };
+}
+
+/* ------------------------------------------------------------
+   fitStrokesTo(strokes, target)
+   模写採点用の正規化: ユーザーの描画全体を、お手本のバウンディング
+   ボックスに合わせて等倍スケール+中心合わせする。
+   位置や大きさではなく「形」を採点するための前処理。
+   返り値の { scale, cx, cy, tcx, tcy } は差分オーバーレイ
+   (お手本をユーザーの描画位置へ逆変換して重ねる) に使う。
+   ------------------------------------------------------------ */
+function fitStrokesTo(strokes, target) {
+  const bbox = pts => {
+    let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+    for (const p of pts) {
+      minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
+      minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
+    }
+    return { minX, minY, maxX, maxY,
+      cx: (minX + maxX) / 2, cy: (minY + maxY) / 2,
+      diag: Math.max(Math.hypot(maxX - minX, maxY - minY), 1) };
+  };
+  const sb = bbox(strokes.flat());
+  const tb = bbox(target);
+  const scale = tb.diag / sb.diag;
+  const fitted = strokes.map(st =>
+    st.map(p => ({
+      ...p,
+      x: tb.cx + (p.x - sb.cx) * scale,
+      y: tb.cy + (p.y - sb.cy) * scale,
+    }))
+  );
+  return { strokes: fitted, scale, cx: sb.cx, cy: sb.cy, tcx: tb.cx, tcy: tb.cy };
 }
 
 /* Node (tools/sim/verify.js) から require できるように */
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { dist, clamp01, resample, smoothPts, jitterOf, scoreStrokes };
+  module.exports = { dist, clamp01, resample, smoothPts, jitterOf, scoreStrokes, fitStrokesTo };
 }

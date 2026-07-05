@@ -10,7 +10,7 @@
 "use strict";
 const path = require("path");
 
-const { scoreStrokes, dist } = require(path.join(__dirname, "../../js/scoring.js"));
+const { scoreStrokes, dist, fitStrokesTo } = require(path.join(__dirname, "../../js/scoring.js"));
 
 const W = 700, H = 525; // iPad 横向き相当のキャンバスサイズ
 
@@ -36,7 +36,8 @@ function check(label, r, expected) {
   const ok = r.total === expected;
   if (!ok) failures++;
   const detail = `acc=${String(r.acc).padStart(3)} cov=${String(r.cov).padStart(3)} smo=${String(r.smo).padStart(3)}` +
-    (r.prs != null ? ` prs=${String(r.prs).padStart(3)}` : "");
+    (r.prs != null ? ` prs=${String(r.prs).padStart(3)}` : "") +
+    (r.minPartCov != null ? ` 部品最低cov=${String(r.minPartCov).padStart(3)}` : "");
   console.log(`  ${ok ? "✓" : "✗"} ${label.padEnd(14)} total=${String(r.total).padStart(3)} (期待 ${String(expected).padStart(3)})  ${detail}`);
 }
 
@@ -276,8 +277,8 @@ function check(label, r, expected) {
   const CASES = [
     ["きれいな3筆",     () => [makePart(0), makePart(1), makePart(2)], 98],
     ["ヨレた楕円",       () => [makePart(0), makePart(1, { tremorAmp: 5, tremorWL: 55 }), makePart(2, { tremorAmp: 5, tremorWL: 55 })], 91],
-    ["骨盤が小さすぎ",   () => [makePart(0), makePart(1), makePart(2, { scale: 0.55 })], 35],
-    ["骨盤を描き忘れ",   () => [makePart(0), makePart(1), makePart(1)], 33],
+    ["骨盤が小さすぎ",   () => [makePart(0), makePart(1), makePart(2, { scale: 0.55 })], 8],
+    ["骨盤を描き忘れ",   () => [makePart(0), makePart(1), makePart(1)], 0],
   ];
 
   console.log("=== Suite 4: アタリ課題 (胴体) ===");
@@ -285,6 +286,96 @@ function check(label, r, expected) {
   for (const [name, gen, expected] of CASES) {
     seed = 42 + name.length;
     check(name, scoreStrokes(gen(), targetPoints(), { multiStroke: true, partTargets }), expected);
+  }
+}
+
+/* ============================================================
+   Suite 5: 模写課題 (正規化採点)
+   題材: 瓢箪 (js/mosha.js と同じ形状)。フリーハンドの模写を想定し、
+   別の場所に別の大きさで描いた絵を fitStrokesTo で正規化してから
+   緩めの許容値 (accScale 0.08 / covTolRatio 0.075) で採点する
+   ============================================================ */
+{
+  const S = 500; // 単位正方形 → 500px
+  const arcFn = (cx, cy, r, a0, a1) => t => {
+    const a = ((a0 + (a1 - a0) * t) * Math.PI) / 180;
+    return { x: (cx + r * Math.cos(a)) * S, y: (cy + r * Math.sin(a)) * S };
+  };
+  const lineFn = (x0, y0, x1, y1) => t => ({ x: (x0 + (x1 - x0) * t) * S, y: (y0 + (y1 - y0) * t) * S });
+  const PARTS = [
+    arcFn(0.5, 0.33, 0.12, 131.9, -311.9),   // 上の玉
+    arcFn(0.5, 0.575, 0.175, -62.7, 242.7),  // 下の玉
+    lineFn(0.5, 0.10, 0.5, 0.208),          // 口
+  ];
+  function partPoints(pi, n = 40) {
+    const pts = [];
+    for (let i = 0; i <= n; i++) pts.push(PARTS[pi](i / n));
+    return pts;
+  }
+  function targetPoints(n = 240) {
+    const per = Math.max(2, Math.floor(n / PARTS.length));
+    const pts = [];
+    for (let pi = 0; pi < PARTS.length; pi++) pts.push(...partPoints(pi, per));
+    return pts;
+  }
+
+  /* 模写ストローク: 全体を (offsetX, offsetY, globalScale) で別の場所に描き、
+     部品ごとに位置ずれ (partShift px) と手ブレを加える */
+  function makeCopy({ globalScale = 0.7, offsetX = 900, offsetY = 300, partShift = 0, tremorAmp = 1.5, tremorWL = 45, distort = 0 }) {
+    const strokes = [];
+    for (let pi = 0; pi < PARTS.length; pi++) {
+      const dense = partPoints(pi, 200);
+      let len = 0;
+      for (let i = 1; i < dense.length; i++) len += dist(dense[i - 1], dense[i]);
+      const nPts = Math.max(8, Math.round((len * globalScale) / 2.5));
+      const sx = (rand() - 0.5) * 2 * partShift, sy = (rand() - 0.5) * 2 * partShift;
+      const partScale = 1 + (rand() - 0.5) * 2 * distort; // 部品ごとの大きさ間違い
+      // 部品の重心
+      let cx = 0, cy = 0;
+      for (const p of dense) { cx += p.x; cy += p.y; }
+      cx /= dense.length; cy /= dense.length;
+      const ph = rand() * Math.PI * 2;
+      const stroke = [];
+      for (let i = 0; i < nPts; i++) {
+        const t = i / (nPts - 1);
+        const p = PARTS[pi](t);
+        const p2 = PARTS[pi](Math.min(1, t + 0.002));
+        let nx = -(p2.y - p.y), ny = p2.x - p.x;
+        const nl = Math.hypot(nx, ny) || 1;
+        nx /= nl; ny /= nl;
+        const tremor = tremorAmp * Math.sin(((t * len) / tremorWL) * Math.PI * 2 + ph);
+        const bx = cx + (p.x - cx) * partScale + sx;
+        const by = cy + (p.y - cy) * partScale + sy;
+        stroke.push({
+          x: offsetX + (bx + nx * tremor + gauss() * 0.4) * globalScale,
+          y: offsetY + (by + ny * tremor + gauss() * 0.4) * globalScale,
+          p: 0.5,
+        });
+      }
+      strokes.push(stroke);
+    }
+    return strokes;
+  }
+
+  const CASES = [
+    ["上手な模写",       { partShift: 4, tremorAmp: 1.5 }, 98],
+    ["並の模写",         { partShift: 12, tremorAmp: 2.5, distort: 0.10 }, 86],
+    ["比率を間違えた",   { partShift: 8, tremorAmp: 2, distort: 0.35 }, 78],
+    ["部品の位置が滅茶苦茶", { partShift: 45, tremorAmp: 2.5 }, 47],
+    ["口を描き忘れ",     { partShift: 6, tremorAmp: 1.5, skipLast: true }, 0],
+  ];
+
+  console.log("=== Suite 5: 模写課題 (瓢箪・正規化) ===");
+  const partTargets = PARTS.map((_, pi) => partPoints(pi));
+  for (const [name, params, expected] of CASES) {
+    seed = 42 + name.length;
+    let strokes = makeCopy(params);
+    if (params.skipLast) strokes = strokes.slice(0, -1);
+    const fit = fitStrokesTo(strokes, targetPoints());
+    const r = scoreStrokes(fit.strokes, targetPoints(), {
+      multiStroke: true, partTargets, accScale: 0.08, covTolRatio: 0.055,
+    });
+    check(name, r, expected);
   }
 }
 

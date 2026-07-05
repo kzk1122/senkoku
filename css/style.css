@@ -306,7 +306,12 @@ body {
 }
 .stage-link:active { color: var(--ink); border-color: var(--ink-soft); }
 
+.stage-links { display: flex; gap: 8px; }
+.stage-links .stage-link { margin-top: 10px; }
+
 .tabs { display: flex; gap: 8px; }
+.tabs-small .tab { font-size: 0.76rem; padding: 6px 14px; letter-spacing: 0.12em; }
+.tab:disabled { opacity: 0.35; }
 .tab {
   flex: 0 0 auto;
   font-family: var(--font-display);
@@ -326,6 +331,9 @@ body {
   grid-template-columns: 1fr 1.7fr;
   gap: 12px;
 }
+.gesture-wrap.solo { grid-template-columns: 1fr; } /* 模写・下敷きモード: お手本ペインなし */
+.mosha-tools { flex-wrap: wrap; }
+.btn:disabled { opacity: 0.4; }
 .pose-pane, .draw-pane {
   position: relative;
   border: 1px solid var(--line);
