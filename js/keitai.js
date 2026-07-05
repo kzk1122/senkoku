@@ -21,6 +21,20 @@ const ellipsePath = (cx, cy, rx, ry) => t => ({
 });
 /* 直線パス生成 */
 const linePath = (x0, y0, x1, y1) => t => ({ x: x0 + (x1 - x0) * t, y: y0 + (y1 - y0) * t });
+/* 折れ線パス生成 */
+const polyPath = (...pts) => t => {
+  const n = pts.length - 1;
+  const ft = Math.min(t, 0.9999) * n;
+  const i = Math.floor(ft), r = ft - i;
+  return { x: pts[i][0] + (pts[i + 1][0] - pts[i][0]) * r, y: pts[i][1] + (pts[i + 1][1] - pts[i][1]) * r };
+};
+/* 回転楕円パス生成 (円柱のアタリ用。rotDeg = 長軸の傾き) */
+const rotEllipsePath = (cx, cy, a, b, rotDeg) => t => {
+  const ph = t * Math.PI * 2;
+  const rot = (rotDeg * Math.PI) / 180;
+  const u = a * Math.cos(ph), v = b * Math.sin(ph);
+  return { x: cx + u * Math.cos(rot) - v * Math.sin(rot), y: cy + u * Math.sin(rot) + v * Math.cos(rot) };
+};
 
 /* ---------------- アタリ課題定義 ----------------
    parts: 部品パスのリスト。1部品=1筆。全部品を描くと自動採点 */
@@ -55,6 +69,54 @@ const ATARI_COURSES = [
       t => ({ x: 0.60 + 0.07 * t + 0.015 * Math.sin(Math.PI * t), y: 0.25 + 0.30 * t }), // 右腕
       t => ({ x: 0.46 - 0.04 * t, y: 0.61 + 0.32 * t }),                                  // 左脚
       t => ({ x: 0.54 + 0.04 * t, y: 0.61 + 0.32 * t }),                                  // 右脚
+    ],
+  },
+  /* --- 部位アタリ (2026-07 追加) --- */
+  {
+    id: "at_profile", glyph: "顔", name: "横顔アタリ",
+    desc: "頭の円 → 側面の円 → 顎のライン。耳は側面円の中心に来る。",
+    parts: [
+      ellipsePath(0.50, 0.36, 0.22, 0.27),   // 頭の円
+      ellipsePath(0.54, 0.38, 0.11, 0.135),  // 側面(こめかみ)の円
+      polyPath([0.30, 0.52], [0.36, 0.74], [0.50, 0.84], [0.66, 0.60]), // 顎のライン
+    ],
+  },
+  {
+    id: "at_arm", glyph: "腕", name: "腕アタリ",
+    desc: "上腕の円柱 → 肘の円 → 前腕の円柱 → 手の円。関節で区切る。",
+    parts: [
+      rotEllipsePath(0.33, 0.33, 0.19, 0.08, 45),    // 上腕
+      ellipsePath(0.49, 0.50, 0.05, 0.06),           // 肘
+      rotEllipsePath(0.645, 0.455, 0.16, 0.05, -15), // 前腕
+      ellipsePath(0.83, 0.40, 0.055, 0.065),         // 手
+    ],
+  },
+  {
+    id: "at_hand", glyph: "手", name: "手アタリ",
+    desc: "手のひらの板 → 指のかたまり → 親指。まず塊でとらえる。",
+    parts: [
+      polyPath([0.36, 0.42], [0.62, 0.40], [0.66, 0.66], [0.51, 0.74], [0.37, 0.66], [0.36, 0.42]), // 手のひら
+      t => ({ x: 0.36 + 0.27 * t, y: 0.41 - 1.15 * t * (1 - t) }), // 指のかたまり
+      rotEllipsePath(0.30, 0.55, 0.10, 0.042, 130),                // 親指
+    ],
+  },
+  {
+    id: "at_leg", glyph: "脚", name: "脚アタリ",
+    desc: "太ももの円柱 → 膝の円 → すねの円柱 → 足のくさび。",
+    parts: [
+      rotEllipsePath(0.455, 0.30, 0.185, 0.07, 75),  // 太もも
+      ellipsePath(0.51, 0.52, 0.05, 0.045),          // 膝
+      rotEllipsePath(0.525, 0.70, 0.155, 0.055, 84), // すね
+      polyPath([0.55, 0.84], [0.51, 0.94], [0.72, 0.95], [0.63, 0.86], [0.55, 0.84]), // 足
+    ],
+  },
+  {
+    id: "at_foot", glyph: "足", name: "足アタリ",
+    desc: "足首の円 → 側面のくさび → 親指の円。かかとの奥行きを意識。",
+    parts: [
+      ellipsePath(0.44, 0.36, 0.06, 0.075),  // 足首
+      polyPath([0.44, 0.46], [0.35, 0.62], [0.33, 0.70], [0.76, 0.72], [0.72, 0.60], [0.46, 0.46]), // くさび
+      ellipsePath(0.74, 0.64, 0.045, 0.05),  // 親指
     ],
   },
 ];

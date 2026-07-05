@@ -107,7 +107,7 @@ prs = 最近傍お手本点の目標筆圧との平均誤差ベースだが、**
 
 ## Stage 2 の実装仕様(js/keitai.js)
 
-- **アタリ課題**: `ATARI_COURSES`。各課題は `parts`(部品パスのリスト、1部品=1筆)を持つ複数ストローク課題。
+- **アタリ課題**: `ATARI_COURSES`(頭部・胴体・全身・横顔・腕・手・脚・足の8課題)。各課題は `parts`(部品パスのリスト、1部品=1筆)を持つ複数ストローク課題。パスは ellipsePath / linePath / polyPath / rotEllipsePath ヘルパーで定義。**新課題は形状を SVG レンダリングで目視確認してから入れること**(tools 不要、node でポリライン SVG を書き qlmanage で PNG 化)。
   共通採点エンジンに `partTargets` を渡し、筆ごとに最寄り部品の曲率を滑らかさの基準にする(楕円部品の固有曲率を減点しないため)。
   進捗は Stage 1 と同じ `senkoku_progress_v1` に保存(id: at_head / at_torso / at_body)
 - **ジェスチャードローイング**: `POSES`(関節角度プリセット8種)から FK(`buildFigure`)で棒人間+図形分解の
